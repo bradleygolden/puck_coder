@@ -31,6 +31,16 @@ class Message {
   content string
 }
 
+retry_policy DefaultRetry {
+  max_retries 3
+  strategy {
+    type exponential_backoff
+    delay_ms 200
+    multiplier 1.5
+    max_delay_ms 10000
+  }
+}
+
 client<llm> PuckCoderClient {
   provider "anthropic"
   options {
