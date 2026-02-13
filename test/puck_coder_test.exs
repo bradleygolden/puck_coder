@@ -37,11 +37,44 @@ defmodule PuckCoderTest do
     end
   end
 
+  describe "run/2 with plugins" do
+    test "runs a plugin action end-to-end" do
+      tmp_dir = System.tmp_dir!()
+
+      client =
+        Puck.Test.mock_client([
+          %{"type" => "list_dir", "path" => tmp_dir},
+          %{"type" => "done", "message" => "Listed it."}
+        ])
+
+      assert {:ok, result} =
+               PuckCoder.run("List the temp directory",
+                 client: client,
+                 plugins: [PuckCoder.TestPlugin]
+               )
+
+      assert result.message == "Listed it."
+      assert result.turns == 2
+    end
+  end
+
   describe "default_system_prompt/0" do
     test "returns a non-empty string" do
       prompt = PuckCoder.default_system_prompt()
       assert is_binary(prompt)
       assert String.contains?(prompt, "coding agent")
+    end
+
+    test "includes plugin descriptions when plugins are provided" do
+      prompt = PuckCoder.default_system_prompt([PuckCoder.TestPlugin])
+      assert String.contains?(prompt, "list_dir")
+      assert String.contains?(prompt, "List files in a directory")
+    end
+
+    test "returns base prompt with no plugins" do
+      with_plugins = PuckCoder.default_system_prompt([PuckCoder.TestPlugin])
+      without_plugins = PuckCoder.default_system_prompt()
+      assert String.length(with_plugins) > String.length(without_plugins)
     end
   end
 end

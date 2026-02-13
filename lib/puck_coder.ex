@@ -38,6 +38,13 @@ defmodule PuckCoder do
       )
       {:ok, result} = PuckCoder.run("Fix the bug", client: client)
 
+  ## With Plugins
+
+      {:ok, result} = PuckCoder.run("Check if example.com is up",
+        plugins: [MyApp.Plugins.HttpGet],
+        executor_opts: [cwd: "/my/project"]
+      )
+
   """
 
   @default_max_turns 200
@@ -55,6 +62,7 @@ defmodule PuckCoder do
   - `:client` - Custom `Puck.Client` (bypasses BAML, use your own system prompt)
   - `:client_registry` - BAML client registry for runtime LLM provider config
   - `:instructions` - Extra instructions injected into the BAML prompt
+  - `:plugins` - List of `PuckCoder.Plugin` modules for custom actions
   - `:executor` - Module implementing `PuckCoder.Executor` (default: `PuckCoder.Executors.Local`)
   - `:executor_opts` - Keyword list passed to executor callbacks (e.g., `[cwd: "/path"]`)
   - `:max_turns` - Maximum loop iterations (default: #{@default_max_turns})
@@ -76,7 +84,8 @@ defmodule PuckCoder do
   """
   def run(task, opts \\ []) do
     {client_opts, loop_opts} = split_opts(opts)
-    client = build_client(client_opts)
+    plugins = Keyword.get(loop_opts, :plugins, [])
+    client = build_client(client_opts, plugins)
 
     loop_opts =
       loop_opts
@@ -90,7 +99,7 @@ defmodule PuckCoder do
   Returns the default system prompt used when bypassing BAML.
 
   Use this when passing a custom `:client` to preserve the agent's
-  core behavior.
+  core behavior. Pass plugins to include their descriptions in the prompt.
 
   ## Example
 
@@ -100,8 +109,8 @@ defmodule PuckCoder do
       )
 
   """
-  def default_system_prompt do
-    """
+  def default_system_prompt(plugins \\ []) do
+    base = """
     You are an expert coding agent. You modify codebases by reading files, writing files, editing files, and running shell commands.
 
     Available actions (respond with exactly one JSON object per turn):
@@ -117,27 +126,42 @@ defmodule PuckCoder do
     - Run tests after making changes when applicable.
     - If a tool call fails, read the error and try a different approach.
     """
+
+    case build_plugin_instructions(plugins) do
+      "" -> base
+      plugin_text -> base <> "\nAdditional actions:\n" <> plugin_text <> "\n"
+    end
   end
 
   defp split_opts(opts) do
     {client_keys, loop_keys} =
-      Enum.split_with(opts, fn {k, _} -> k in [:client, :client_registry, :instructions] end)
+      Enum.split_with(opts, fn {k, _} ->
+        k in [:client, :client_registry, :instructions]
+      end)
 
     {client_keys, loop_keys}
   end
 
-  defp build_client(opts) do
+  defp build_client(opts, plugins) do
     case Keyword.get(opts, :client) do
       %Puck.Client{} = client ->
         client
 
       nil ->
-        build_baml_client(opts)
+        build_baml_client(opts, plugins)
     end
   end
 
-  defp build_baml_client(opts) do
-    instructions = Keyword.get(opts, :instructions, "")
+  defp build_baml_client(opts, plugins) do
+    base_instructions = Keyword.get(opts, :instructions, "")
+    plugin_text = build_plugin_instructions(plugins)
+
+    instructions =
+      case plugin_text do
+        "" -> base_instructions
+        text -> base_instructions <> "\n\nAdditional actions:\n" <> text
+      end
+
     client_registry = Keyword.get(opts, :client_registry)
 
     backend_config =
@@ -155,6 +179,14 @@ defmodule PuckCoder do
       |> maybe_put(:client_registry, client_registry)
 
     Puck.Client.new({Puck.Backends.Baml, backend_config})
+  end
+
+  defp build_plugin_instructions([]), do: ""
+
+  defp build_plugin_instructions(plugins) do
+    Enum.map_join(plugins, "\n", fn plugin ->
+      "- #{plugin.name()}: #{plugin.description()}"
+    end)
   end
 
   defp format_messages(messages) do

@@ -120,6 +120,64 @@ The agent has 4 tools:
 | `edit_file` | Replace the first occurrence of a string in a file |
 | `shell` | Execute a shell command |
 
+## Plugins
+
+Add custom action types without modifying core code. Plugins are plain modules — no GenServers, no ETS, no global state.
+
+```elixir
+defmodule MyApp.Plugins.HttpGet do
+  @behaviour PuckCoder.Plugin
+
+  defmodule Action do
+    defstruct type: "http_get", url: nil
+  end
+
+  @impl true
+  def name, do: "http_get"
+
+  @impl true
+  def description, do: "Fetch a URL and return its body. Params: url (string)."
+
+  @impl true
+  def schema do
+    Zoi.struct(Action, %{
+      type: Zoi.literal("http_get"),
+      url: Zoi.string()
+    }, coerce: true)
+  end
+
+  @impl true
+  def execute(%Action{url: url}, _opts) do
+    case Req.get(url) do
+      {:ok, %{status: 200, body: body}} -> {:ok, body}
+      {:ok, %{status: status}} -> {:error, "HTTP #{status}"}
+      {:error, reason} -> {:error, reason}
+    end
+  end
+end
+```
+
+Then pass it to `run/2`:
+
+```elixir
+{:ok, result} = PuckCoder.run("Check if example.com is up",
+  plugins: [MyApp.Plugins.HttpGet]
+)
+```
+
+The LLM learns about plugins via instruction injection — each plugin's `name/0` and `description/0` are appended to the prompt. This keeps overhead to ~15 tokens per plugin.
+
+### Plugin Behaviour Callbacks
+
+| Callback | Required | Description |
+|----------|----------|-------------|
+| `name/0` | Yes | Action name (matches `type` field in JSON) |
+| `description/0` | Yes | One-line description injected into LLM prompt |
+| `schema/0` | Yes | Zoi schema for parsing LLM output |
+| `execute/2` | Yes | Runs the action; receives parsed struct + `executor_opts` |
+| `action_summary/1` | No | Custom summary for result messages fed back to LLM |
+| `type_builder_fields/0` | No | Reserved for future BAML `@@dynamic` integration |
+
 ## Custom Executors
 
 By default, tools run directly on your local filesystem. Implement `PuckCoder.Executor` to run them elsewhere:
@@ -138,6 +196,7 @@ By default, tools run directly on your local filesystem. Implement `PuckCoder.Ex
 | `:client` | BAML | Custom `Puck.Client` (bypasses BAML) |
 | `:client_registry` | `nil` | BAML client registry for runtime LLM config |
 | `:instructions` | `""` | Extra instructions for the agent |
+| `:plugins` | `[]` | List of `PuckCoder.Plugin` modules for custom actions |
 | `:executor` | `PuckCoder.Executors.Local` | Tool execution backend |
 | `:executor_opts` | `[]` | Options passed to executor (e.g., `cwd`, `timeout`) |
 | `:max_turns` | `200` | Maximum agent loop iterations |

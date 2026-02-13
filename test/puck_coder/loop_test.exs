@@ -118,5 +118,24 @@ defmodule PuckCoder.LoopTest do
       assert_received {:action, %Shell{command: "echo hi"}, 0}
       assert_received {:action, %Done{message: "Done."}, 1}
     end
+
+    test "dispatches plugin action to plugin.execute/2" do
+      tmp_dir = System.tmp_dir!()
+
+      client =
+        Puck.Test.mock_client([
+          %{"type" => "list_dir", "path" => tmp_dir},
+          %{"type" => "done", "message" => "Listed directory."}
+        ])
+
+      assert {:ok, result} =
+               PuckCoder.Loop.run("List the temp dir",
+                 client: client,
+                 plugins: [PuckCoder.TestPlugin]
+               )
+
+      assert result.message == "Listed directory."
+      assert result.turns == 2
+    end
   end
 end
