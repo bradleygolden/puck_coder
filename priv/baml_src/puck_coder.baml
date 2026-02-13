@@ -1,28 +1,28 @@
 class ReadFile {
-  type string @description("Always 'read_file'")
+  type "read_file" @stream.not_null
   path string @description("Absolute path to the file to read")
 }
 
 class WriteFile {
-  type string @description("Always 'write_file'")
+  type "write_file" @stream.not_null
   path string @description("Absolute path to write to")
   content string @description("Complete file content to write")
 }
 
 class EditFile {
-  type string @description("Always 'edit_file'")
+  type "edit_file" @stream.not_null
   path string @description("Absolute path to the file to edit")
   old_string string @description("Exact string to find and replace (first occurrence only)")
   new_string string @description("Replacement string")
 }
 
 class Shell {
-  type string @description("Always 'shell'")
+  type "shell" @stream.not_null
   command string @description("Shell command to execute")
 }
 
 class Done {
-  type string @description("Always 'done'")
+  type "done" @stream.not_null
   message string @description("Final message summarizing what was accomplished")
 }
 
