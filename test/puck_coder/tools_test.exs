@@ -54,18 +54,25 @@ defmodule PuckCoder.ToolsTest do
   end
 
   describe "schema/1 with plugins" do
-    test "parses plugin action" do
+    test "parses plugin action from normalized tuple" do
       input = %{"type" => "list_dir", "path" => "/tmp"}
 
       assert {:ok, %PuckCoder.TestPlugin.Action{type: "list_dir", path: "/tmp"}} =
-               Zoi.parse(Tools.schema([PuckCoder.TestPlugin]), input)
+               Zoi.parse(Tools.schema([{PuckCoder.TestPlugin, []}]), input)
+    end
+
+    test "parses plugin action from tuple with opts" do
+      input = %{"type" => "list_dir", "path" => "/tmp"}
+
+      assert {:ok, %PuckCoder.TestPlugin.Action{type: "list_dir", path: "/tmp"}} =
+               Zoi.parse(Tools.schema([{PuckCoder.TestPlugin, [some: "opt"]}]), input)
     end
 
     test "still parses built-in actions with plugins" do
       input = %{"type" => "done", "message" => "finished"}
 
       assert {:ok, %Done{message: "finished"}} =
-               Zoi.parse(Tools.schema([PuckCoder.TestPlugin]), input)
+               Zoi.parse(Tools.schema([{PuckCoder.TestPlugin, []}]), input)
     end
   end
 end

@@ -2,7 +2,7 @@ defmodule PuckCoder.Plugin do
   @moduledoc """
   Behaviour for extending PuckCoder with custom action types.
 
-  Plugins are plain modules passed as `plugins: [MyPlugin]` in opts.
+  Plugins are passed as `plugins: [MyPlugin]` or `plugins: [{MyPlugin, opts}]`.
   No registry, no process, no global state — just functions.
 
   ## Example
@@ -29,7 +29,7 @@ defmodule PuckCoder.Plugin do
         end
 
         @impl true
-        def execute(%Action{url: url}, _opts) do
+        def execute(%Action{url: url}, _opts, _plugin_opts) do
           case Req.get(url) do
             {:ok, %{status: 200, body: body}} -> {:ok, body}
             {:ok, %{status: status}} -> {:error, "HTTP \#{status}"}
@@ -40,6 +40,9 @@ defmodule PuckCoder.Plugin do
 
   """
 
+  @typedoc "A plugin is either a bare module or a `{module, keyword()}` tuple."
+  @type plugin :: module() | {module(), keyword()}
+
   @doc "Unique action name (matches the `type` field in the JSON schema)."
   @callback name() :: String.t()
 
@@ -49,8 +52,8 @@ defmodule PuckCoder.Plugin do
   @doc "Zoi schema for parsing the action from LLM output."
   @callback schema() :: term()
 
-  @doc "Execute the parsed action struct. Receives executor_opts from the loop."
-  @callback execute(action :: struct(), opts :: keyword()) ::
+  @doc "Execute the parsed action struct. Receives executor_opts and plugin_opts."
+  @callback execute(action :: struct(), executor_opts :: keyword(), plugin_opts :: keyword()) ::
               {:ok, String.t()} | :ok | {:error, term()}
 
   @doc "Fields for future BAML @@dynamic TypeBuilder integration."
@@ -60,4 +63,9 @@ defmodule PuckCoder.Plugin do
   @callback action_summary(action :: struct()) :: String.t()
 
   @optional_callbacks [action_summary: 1, type_builder_fields: 0]
+
+  @doc "Normalize a plugin to `{module, keyword()}` tuple form."
+  @spec normalize(plugin()) :: {module(), keyword()}
+  def normalize({mod, opts}) when is_atom(mod) and is_list(opts), do: {mod, opts}
+  def normalize(mod) when is_atom(mod), do: {mod, []}
 end

@@ -119,7 +119,7 @@ defmodule PuckCoder.LoopTest do
       assert_received {:action, %Done{message: "Done."}, 1}
     end
 
-    test "dispatches plugin action to plugin.execute/2" do
+    test "dispatches plugin action to plugin.execute/3" do
       tmp_dir = System.tmp_dir!()
 
       client =
@@ -131,11 +131,30 @@ defmodule PuckCoder.LoopTest do
       assert {:ok, result} =
                PuckCoder.Loop.run("List the temp dir",
                  client: client,
-                 plugins: [PuckCoder.TestPlugin]
+                 plugins: [{PuckCoder.TestPlugin, []}]
                )
 
       assert result.message == "Listed directory."
       assert result.turns == 2
+    end
+
+    test "passes plugin_opts to plugin.execute/3" do
+      client =
+        Puck.Test.mock_client([
+          %{"type" => "capture", "value" => "hello"},
+          %{"type" => "done", "message" => "Done."}
+        ])
+
+      assert {:ok, _result} =
+               PuckCoder.Loop.run("Capture opts",
+                 client: client,
+                 plugins: [{PuckCoder.OptsCapturePlugin, [some: "opt"]}],
+                 executor_opts: [cwd: "/tmp"]
+               )
+
+      assert_received {:captured, "hello", executor_opts, plugin_opts}
+      assert executor_opts == [cwd: "/tmp"]
+      assert plugin_opts == [some: "opt"]
     end
   end
 end

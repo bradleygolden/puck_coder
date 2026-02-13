@@ -26,7 +26,7 @@ defmodule PuckCoder.TestPlugin do
   end
 
   @impl true
-  def execute(%Action{path: path}, _opts) do
+  def execute(%Action{path: path}, _opts, _plugin_opts) do
     case File.ls(path) do
       {:ok, entries} -> {:ok, Enum.join(entries, "\n")}
       {:error, reason} -> {:error, reason}

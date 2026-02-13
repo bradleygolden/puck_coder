@@ -55,7 +55,7 @@ defmodule PuckCoder.MixProject do
       links: %{
         "GitHub" => @source_url
       },
-      files: ~w(lib priv LICENSE mix.exs README.md CHANGELOG.md)
+      files: ~w(lib priv LICENSE mix.exs README.md)
     ]
   end
 
@@ -64,7 +64,7 @@ defmodule PuckCoder.MixProject do
       main: "readme",
       source_ref: "v#{@version}",
       source_url: @source_url,
-      extras: ["README.md", "CHANGELOG.md"]
+      extras: ["README.md"]
     ]
   end
 end

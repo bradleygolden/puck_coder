@@ -43,7 +43,7 @@ defmodule PuckCoder.Loop do
   end
 
   defp build_plugin_map(plugins) do
-    Map.new(plugins, fn plugin -> {plugin.name(), plugin} end)
+    Map.new(plugins, fn {mod, _opts} = plugin -> {mod.name(), plugin} end)
   end
 
   defp loop(
@@ -140,7 +140,7 @@ defmodule PuckCoder.Loop do
   defp execute_action(%{type: type_name} = action, _executor, opts, plugin_map) do
     case Map.get(plugin_map, type_name) do
       nil -> {:error, {:unknown_action, type_name}}
-      plugin -> plugin.execute(action, opts)
+      {mod, plugin_opts} -> mod.execute(action, opts, plugin_opts)
     end
   end
 
@@ -175,9 +175,9 @@ defmodule PuckCoder.Loop do
       nil ->
         inspect(action)
 
-      plugin ->
-        if function_exported?(plugin, :action_summary, 1) do
-          plugin.action_summary(action)
+      {mod, _plugin_opts} ->
+        if function_exported?(mod, :action_summary, 1) do
+          mod.action_summary(action)
         else
           inspect(action)
         end

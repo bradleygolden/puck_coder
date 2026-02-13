@@ -84,11 +84,17 @@ defmodule PuckCoder do
   """
   def run(task, opts \\ []) do
     {client_opts, loop_opts} = split_opts(opts)
-    plugins = Keyword.get(loop_opts, :plugins, [])
+
+    plugins =
+      loop_opts
+      |> Keyword.get(:plugins, [])
+      |> Enum.map(&PuckCoder.Plugin.normalize/1)
+
     client = build_client(client_opts, plugins)
 
     loop_opts =
       loop_opts
+      |> Keyword.put(:plugins, plugins)
       |> Keyword.put(:client, client)
       |> Keyword.put_new(:max_turns, @default_max_turns)
 
@@ -110,6 +116,8 @@ defmodule PuckCoder do
 
   """
   def default_system_prompt(plugins \\ []) do
+    plugins = Enum.map(plugins, &PuckCoder.Plugin.normalize/1)
+
     base = """
     You are an expert coding agent. You modify codebases by reading files, writing files, editing files, and running shell commands.
 
@@ -184,8 +192,8 @@ defmodule PuckCoder do
   defp build_plugin_instructions([]), do: ""
 
   defp build_plugin_instructions(plugins) do
-    Enum.map_join(plugins, "\n", fn plugin ->
-      "- #{plugin.name()}: #{plugin.description()}"
+    Enum.map_join(plugins, "\n", fn {mod, _opts} ->
+      "- #{mod.name()}: #{mod.description()}"
     end)
   end
 

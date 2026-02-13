@@ -38,7 +38,7 @@ defmodule PuckCoderTest do
   end
 
   describe "run/2 with plugins" do
-    test "runs a plugin action end-to-end" do
+    test "runs a bare module plugin end-to-end" do
       tmp_dir = System.tmp_dir!()
 
       client =
@@ -56,6 +56,25 @@ defmodule PuckCoderTest do
       assert result.message == "Listed it."
       assert result.turns == 2
     end
+
+    test "runs a {Plugin, opts} tuple plugin end-to-end" do
+      tmp_dir = System.tmp_dir!()
+
+      client =
+        Puck.Test.mock_client([
+          %{"type" => "list_dir", "path" => tmp_dir},
+          %{"type" => "done", "message" => "Listed it."}
+        ])
+
+      assert {:ok, result} =
+               PuckCoder.run("List the temp directory",
+                 client: client,
+                 plugins: [{PuckCoder.TestPlugin, [some: "opt"]}]
+               )
+
+      assert result.message == "Listed it."
+      assert result.turns == 2
+    end
   end
 
   describe "default_system_prompt/0" do
@@ -67,6 +86,12 @@ defmodule PuckCoderTest do
 
     test "includes plugin descriptions when plugins are provided" do
       prompt = PuckCoder.default_system_prompt([PuckCoder.TestPlugin])
+      assert String.contains?(prompt, "list_dir")
+      assert String.contains?(prompt, "List files in a directory")
+    end
+
+    test "includes plugin descriptions for tuple format" do
+      prompt = PuckCoder.default_system_prompt([{PuckCoder.TestPlugin, [some: "opt"]}])
       assert String.contains?(prompt, "list_dir")
       assert String.contains?(prompt, "List files in a directory")
     end

@@ -21,7 +21,7 @@ defmodule PuckCoder.Tools do
   to the built-in union. With no arguments, returns built-in actions only.
   """
   def schema(plugins \\ []) do
-    plugin_schemas = Enum.map(plugins, & &1.schema())
+    plugin_schemas = Enum.map(plugins, fn {mod, _opts} -> mod.schema() end)
 
     Zoi.union(
       [

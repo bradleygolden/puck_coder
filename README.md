@@ -147,7 +147,7 @@ defmodule MyApp.Plugins.HttpGet do
   end
 
   @impl true
-  def execute(%Action{url: url}, _opts) do
+  def execute(%Action{url: url}, _opts, _plugin_opts) do
     case Req.get(url) do
       {:ok, %{status: 200, body: body}} -> {:ok, body}
       {:ok, %{status: status}} -> {:error, "HTTP #{status}"}
@@ -165,6 +165,16 @@ Then pass it to `run/2`:
 )
 ```
 
+Plugins also accept a `{module, opts}` tuple for per-invocation configuration:
+
+```elixir
+{:ok, result} = PuckCoder.run("Check if example.com is up",
+  plugins: [{MyApp.Plugins.HttpGet, [timeout: 5_000]}]
+)
+```
+
+The opts are passed as the third argument to `execute/3`.
+
 The LLM learns about plugins via instruction injection — each plugin's `name/0` and `description/0` are appended to the prompt. This keeps overhead to ~15 tokens per plugin.
 
 ### Plugin Behaviour Callbacks
@@ -174,7 +184,7 @@ The LLM learns about plugins via instruction injection — each plugin's `name/0
 | `name/0` | Yes | Action name (matches `type` field in JSON) |
 | `description/0` | Yes | One-line description injected into LLM prompt |
 | `schema/0` | Yes | Zoi schema for parsing LLM output |
-| `execute/2` | Yes | Runs the action; receives parsed struct + `executor_opts` |
+| `execute/3` | Yes | Runs the action; receives parsed struct, `executor_opts`, and `plugin_opts` |
 | `action_summary/1` | No | Custom summary for result messages fed back to LLM |
 | `type_builder_fields/0` | No | Reserved for future BAML `@@dynamic` integration |
 
