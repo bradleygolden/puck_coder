@@ -59,11 +59,13 @@ function CoderRun(messages: Message[], instructions: string) -> ReadFile | Write
 
     {{ instructions }}
 
-    {{ ctx.output_format }}
-
     {% for msg in messages %}
     {{ _.role(msg.role) }}
     {{ msg.content }}
     {% endfor %}
+
+    What action do you want to take?
+
+    {{ ctx.output_format }}
   "#
 }
