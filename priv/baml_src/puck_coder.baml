@@ -26,6 +26,11 @@ class Done {
   message string @description("Final message summarizing what was accomplished")
 }
 
+class PluginAction {
+  type string
+  @@dynamic
+}
+
 class Message {
   role string
   content string
@@ -48,7 +53,7 @@ client<llm> PuckCoderClient {
   }
 }
 
-function CoderRun(messages: Message[], instructions: string) -> ReadFile | WriteFile | EditFile | Shell | Done {
+function CoderRun(messages: Message[], instructions: string) -> ReadFile | WriteFile | EditFile | Shell | Done | PluginAction {
   client PuckCoderClient
   prompt #"
     {{ _.role("system") }}
