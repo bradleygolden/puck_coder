@@ -18,7 +18,7 @@ defmodule PuckCoder.TestPlugin do
     Zoi.struct(
       Action,
       %{
-        type: Zoi.literal("list_dir"),
+        type: Zoi.enum(["list_dir"]),
         path: Zoi.string()
       },
       coerce: true

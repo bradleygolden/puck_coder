@@ -141,7 +141,7 @@ defmodule MyApp.Plugins.HttpGet do
   @impl true
   def schema do
     Zoi.struct(Action, %{
-      type: Zoi.literal("http_get"),
+      type: Zoi.enum(["http_get"]),
       url: Zoi.string()
     }, coerce: true)
   end

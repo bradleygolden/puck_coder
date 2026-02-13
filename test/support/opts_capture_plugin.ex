@@ -18,7 +18,7 @@ defmodule PuckCoder.OptsCapturePlugin do
     Zoi.struct(
       Action,
       %{
-        type: Zoi.literal("capture"),
+        type: Zoi.enum(["capture"]),
         value: Zoi.string()
       },
       coerce: true

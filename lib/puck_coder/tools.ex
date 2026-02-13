@@ -38,7 +38,7 @@ defmodule PuckCoder.Tools do
     Zoi.struct(
       ReadFile,
       %{
-        type: Zoi.literal("read_file"),
+        type: Zoi.enum(["read_file"]),
         path: Zoi.string()
       },
       coerce: true
@@ -49,7 +49,7 @@ defmodule PuckCoder.Tools do
     Zoi.struct(
       WriteFile,
       %{
-        type: Zoi.literal("write_file"),
+        type: Zoi.enum(["write_file"]),
         path: Zoi.string(),
         content: Zoi.string()
       },
@@ -61,7 +61,7 @@ defmodule PuckCoder.Tools do
     Zoi.struct(
       EditFile,
       %{
-        type: Zoi.literal("edit_file"),
+        type: Zoi.enum(["edit_file"]),
         path: Zoi.string(),
         old_string: Zoi.string(),
         new_string: Zoi.string()
@@ -74,7 +74,7 @@ defmodule PuckCoder.Tools do
     Zoi.struct(
       Shell,
       %{
-        type: Zoi.literal("shell"),
+        type: Zoi.enum(["shell"]),
         command: Zoi.string()
       },
       coerce: true
@@ -85,7 +85,7 @@ defmodule PuckCoder.Tools do
     Zoi.struct(
       Done,
       %{
-        type: Zoi.literal("done"),
+        type: Zoi.enum(["done"]),
         message: Zoi.string()
       },
       coerce: true

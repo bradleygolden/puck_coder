@@ -18,7 +18,7 @@ defmodule PuckCoder.HaltPlugin do
     Zoi.struct(
       Action,
       %{
-        type: Zoi.literal("halt_me"),
+        type: Zoi.enum(["halt_me"]),
         reason: Zoi.string(),
         seconds: Zoi.integer()
       },
