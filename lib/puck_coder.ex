@@ -81,6 +81,7 @@ defmodule PuckCoder do
   ## Returns
 
   - `{:ok, %{message: String.t(), turns: integer(), context: Puck.Context.t()}}` on success
+  - `{:halt, %{message: String.t(), turns: integer(), context: Puck.Context.t(), halt_metadata: map()}}` when a plugin requests halt
   - `{:error, reason}` on failure
   - `{:error, :max_turns_exceeded, metadata}` if the agent didn't finish in time
 

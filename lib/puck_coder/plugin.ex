@@ -54,7 +54,7 @@ defmodule PuckCoder.Plugin do
 
   @doc "Execute the parsed action struct. Receives executor_opts and plugin_opts."
   @callback execute(action :: struct(), executor_opts :: keyword(), plugin_opts :: keyword()) ::
-              {:ok, String.t()} | :ok | {:error, term()}
+              {:ok, String.t()} | :ok | {:error, term()} | {:halt, String.t(), map()}
 
   @doc "Fields for future BAML @@dynamic TypeBuilder integration."
   @callback type_builder_fields() :: [map()]

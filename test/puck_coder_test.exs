@@ -77,6 +77,24 @@ defmodule PuckCoderTest do
     end
   end
 
+  describe "run/2 with plugin halt" do
+    test "plugin halt propagates through run/2" do
+      client =
+        Puck.Test.mock_client([
+          %{"type" => "halt_me", "reason" => "nap_time", "seconds" => 60}
+        ])
+
+      assert {:halt, result} =
+               PuckCoder.run("Halt integration test",
+                 client: client,
+                 plugins: [PuckCoder.HaltPlugin]
+               )
+
+      assert result.message == "Halt recorded."
+      assert result.halt_metadata == %{reason: "nap_time", seconds: 60}
+    end
+  end
+
   describe "run/2 with skills" do
     test "agent completes with skills as maps" do
       client =

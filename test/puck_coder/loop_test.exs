@@ -138,6 +138,46 @@ defmodule PuckCoder.LoopTest do
       assert result.turns == 2
     end
 
+    test "plugin halt stops the loop" do
+      client =
+        Puck.Test.mock_client([
+          %{"type" => "halt_me", "reason" => "sleepy", "seconds" => 30},
+          %{"type" => "done", "message" => "Should never reach here."}
+        ])
+
+      assert {:halt, result} =
+               PuckCoder.Loop.run("Halt test",
+                 client: client,
+                 plugins: [{PuckCoder.HaltPlugin, []}]
+               )
+
+      assert result.message == "Halt recorded."
+      assert result.halt_metadata == %{reason: "sleepy", seconds: 30}
+      assert result.turns == 1
+    end
+
+    test "on_action callback fires before halt" do
+      test_pid = self()
+
+      client =
+        Puck.Test.mock_client([
+          %{"type" => "halt_me", "reason" => "pause", "seconds" => 10}
+        ])
+
+      on_action = fn action, turn ->
+        send(test_pid, {:action, action, turn})
+      end
+
+      assert {:halt, _result} =
+               PuckCoder.Loop.run("Halt callback test",
+                 client: client,
+                 plugins: [{PuckCoder.HaltPlugin, []}],
+                 on_action: on_action
+               )
+
+      assert_received {:action, %PuckCoder.HaltPlugin.Action{reason: "pause", seconds: 10}, 0}
+    end
+
     test "passes plugin_opts to plugin.execute/3" do
       client =
         Puck.Test.mock_client([

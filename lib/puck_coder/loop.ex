@@ -82,21 +82,34 @@ defmodule PuckCoder.Loop do
 
           action ->
             result = execute_action(action, executor, executor_opts, plugin_map)
-            label = action_label(action, plugin_map)
-            result_text = format_result(label, action, result, plugin_map)
-            updated_context = Context.add_message(new_context, :user, result_text)
 
-            loop(
-              client,
-              updated_context,
-              executor,
-              executor_opts,
-              max_turns,
-              on_action,
-              plugins,
-              plugin_map,
-              turn + 1
-            )
+            case result do
+              {:halt, message, metadata} ->
+                {:halt,
+                 %{
+                   message: message,
+                   turns: turn + 1,
+                   context: new_context,
+                   halt_metadata: metadata
+                 }}
+
+              _ ->
+                label = action_label(action, plugin_map)
+                result_text = format_result(label, action, result, plugin_map)
+                updated_context = Context.add_message(new_context, :user, result_text)
+
+                loop(
+                  client,
+                  updated_context,
+                  executor,
+                  executor_opts,
+                  max_turns,
+                  on_action,
+                  plugins,
+                  plugin_map,
+                  turn + 1
+                )
+            end
         end
 
       {:error, reason} ->
