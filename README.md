@@ -188,6 +188,44 @@ The LLM learns about plugins via instruction injection — each plugin's `name/0
 | `action_summary/1` | No | Custom summary for result messages fed back to LLM |
 | `type_builder_fields/0` | No | Reserved for future BAML `@@dynamic` integration |
 
+## Skills
+
+PuckCoder supports the [Agent Skills](https://agentskills.io/specification) standard — an open format for giving agents specialized capabilities via SKILL.md files. Skills are not tools; they're contextual instruction packs the agent loads on demand via `read_file`. Only the skill name and description are injected into the prompt (~100 tokens each). The full SKILL.md body is read only when the agent decides a skill is relevant.
+
+### Pass skill metadata directly
+
+The primary API accepts pre-resolved skill metadata — the caller decides where skills come from (filesystem, database, S3, etc.):
+
+```elixir
+{:ok, result} = PuckCoder.run("Extract text from the PDF",
+  skills: [
+    %{name: "pdf-processing", description: "Extract text from PDFs.", path: "/skills/pdf/SKILL.md"}
+  ]
+)
+```
+
+The `path` field is opaque to PuckCoder — it's included in the prompt's `<location>` element so the agent knows where to `read_file`. Whether the agent can actually read that path depends on the configured executor.
+
+### Discover skills from the filesystem
+
+Use `PuckCoder.Skill.discover/1` to scan directories for subdirectories containing SKILL.md files:
+
+```elixir
+skills = PuckCoder.Skill.discover(["/path/to/skills"])
+PuckCoder.run("Analyze the dataset", skills: skills)
+```
+
+### Combine with plugins
+
+Skills and plugins work together:
+
+```elixir
+{:ok, result} = PuckCoder.run("Process the data",
+  plugins: [MyApp.Plugins.HttpGet],
+  skills: PuckCoder.Skill.discover(["./skills"])
+)
+```
+
 ## Custom Executors
 
 By default, tools run directly on your local filesystem. Implement `PuckCoder.Executor` to run them elsewhere:
@@ -207,6 +245,7 @@ By default, tools run directly on your local filesystem. Implement `PuckCoder.Ex
 | `:client_registry` | `nil` | BAML client registry for runtime LLM config |
 | `:instructions` | `""` | Extra instructions for the agent |
 | `:plugins` | `[]` | List of `PuckCoder.Plugin` modules for custom actions |
+| `:skills` | `[]` | List of `PuckCoder.Skill` structs or maps with `:name`, `:description`, `:path` |
 | `:executor` | `PuckCoder.Executors.Local` | Tool execution backend |
 | `:executor_opts` | `[]` | Options passed to executor (e.g., `cwd`, `timeout`) |
 | `:max_turns` | `200` | Maximum agent loop iterations |

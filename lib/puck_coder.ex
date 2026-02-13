@@ -45,6 +45,14 @@ defmodule PuckCoder do
         executor_opts: [cwd: "/my/project"]
       )
 
+  ## With Skills
+
+      {:ok, result} = PuckCoder.run("Extract text from the PDF",
+        skills: [
+          %{name: "pdf-processing", description: "Extract text from PDFs.", path: "/skills/pdf/SKILL.md"}
+        ]
+      )
+
   """
 
   @default_max_turns 200
@@ -63,6 +71,7 @@ defmodule PuckCoder do
   - `:client_registry` - BAML client registry for runtime LLM provider config
   - `:instructions` - Extra instructions injected into the BAML prompt
   - `:plugins` - List of `PuckCoder.Plugin` modules for custom actions
+  - `:skills` - List of `PuckCoder.Skill` structs or maps with `:name`, `:description`, `:path`
   - `:executor` - Module implementing `PuckCoder.Executor` (default: `PuckCoder.Executors.Local`)
   - `:executor_opts` - Keyword list passed to executor callbacks (e.g., `[cwd: "/path"]`)
   - `:max_turns` - Maximum loop iterations (default: #{@default_max_turns})
@@ -90,7 +99,9 @@ defmodule PuckCoder do
       |> Keyword.get(:plugins, [])
       |> Enum.map(&PuckCoder.Plugin.normalize/1)
 
-    client = build_client(client_opts, plugins)
+    skills = normalize_skills(client_opts)
+
+    client = build_client(client_opts, plugins, skills)
 
     loop_opts =
       loop_opts
@@ -115,7 +126,7 @@ defmodule PuckCoder do
       )
 
   """
-  def default_system_prompt(plugins \\ []) do
+  def default_system_prompt(plugins \\ [], skills \\ []) do
     plugins = Enum.map(plugins, &PuckCoder.Plugin.normalize/1)
 
     base = """
@@ -135,40 +146,47 @@ defmodule PuckCoder do
     - If a tool call fails, read the error and try a different approach.
     """
 
-    case build_plugin_instructions(plugins) do
+    base =
+      case build_plugin_instructions(plugins) do
+        "" -> base
+        plugin_text -> base <> "\nAdditional actions:\n" <> plugin_text <> "\n"
+      end
+
+    case build_skill_instructions(skills) do
       "" -> base
-      plugin_text -> base <> "\nAdditional actions:\n" <> plugin_text <> "\n"
+      skill_text -> base <> "\n" <> skill_text <> "\n"
     end
   end
 
   defp split_opts(opts) do
     {client_keys, loop_keys} =
       Enum.split_with(opts, fn {k, _} ->
-        k in [:client, :client_registry, :instructions]
+        k in [:client, :client_registry, :instructions, :skills]
       end)
 
     {client_keys, loop_keys}
   end
 
-  defp build_client(opts, plugins) do
+  defp build_client(opts, plugins, skills) do
     case Keyword.get(opts, :client) do
       %Puck.Client{} = client ->
         client
 
       nil ->
-        build_baml_client(opts, plugins)
+        build_baml_client(opts, plugins, skills)
     end
   end
 
-  defp build_baml_client(opts, plugins) do
+  defp build_baml_client(opts, plugins, skills) do
     base_instructions = Keyword.get(opts, :instructions, "")
     plugin_text = build_plugin_instructions(plugins)
+    skill_text = build_skill_instructions(skills)
 
     instructions =
-      case plugin_text do
-        "" -> base_instructions
-        text -> base_instructions <> "\n\nAdditional actions:\n" <> text
-      end
+      [base_instructions]
+      |> maybe_append("Additional actions:\n" <> plugin_text, plugin_text != "")
+      |> maybe_append(skill_text, skill_text != "")
+      |> Enum.join("\n\n")
 
     client_registry = Keyword.get(opts, :client_registry)
 
@@ -196,6 +214,21 @@ defmodule PuckCoder do
       "- #{mod.name()}: #{mod.description()}"
     end)
   end
+
+  defp build_skill_instructions([]), do: ""
+  defp build_skill_instructions(skills), do: PuckCoder.Skill.to_prompt(skills)
+
+  defp normalize_skills(opts) do
+    opts
+    |> Keyword.get(:skills, [])
+    |> Enum.map(fn
+      %PuckCoder.Skill{} = skill -> skill
+      attrs -> PuckCoder.Skill.new!(attrs)
+    end)
+  end
+
+  defp maybe_append(list, _text, false), do: list
+  defp maybe_append(list, text, true), do: list ++ [text]
 
   defp format_messages(messages) do
     Enum.map(messages, fn %Puck.Message{role: role, content: content} ->

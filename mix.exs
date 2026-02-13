@@ -37,6 +37,7 @@ defmodule PuckCoder.MixProject do
       {:baml_elixir, "~> 1.0.0-pre.24"},
       {:zoi, "~> 0.17"},
       {:jason, "~> 1.4"},
+      {:yaml_elixir, "~> 2.11"},
       {:ex_doc, "~> 0.40", only: [:dev, :test], runtime: false}
     ]
   end
