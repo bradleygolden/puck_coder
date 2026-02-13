@@ -17,7 +17,7 @@ Add `puck_coder` to your dependencies:
 ```elixir
 def deps do
   [
-    {:puck_coder, "~> 0.1.0"}
+    {:puck_coder, github: "bradleygolden/puck_coder"}
   ]
 end
 ```
@@ -27,12 +27,6 @@ PuckCoder uses [BAML](https://docs.boundaryml.com/) for structured LLM outputs. 
 ```bash
 mix deps.get
 mix baml.generate
-```
-
-Set your Anthropic API key:
-
-```bash
-export ANTHROPIC_API_KEY=your-key-here
 ```
 
 ## Usage
@@ -51,7 +45,43 @@ export ANTHROPIC_API_KEY=your-key-here
 )
 ```
 
-### Swap LLM providers at runtime
+### Observe each turn
+
+```elixir
+{:ok, result} = PuckCoder.run("Add logging to the API module",
+  on_action: fn action, turn ->
+    IO.puts("[Turn #{turn}] #{inspect(action)}")
+  end
+)
+```
+
+## Supported Providers
+
+PuckCoder works with any LLM provider. Anthropic is the default.
+
+| Provider |
+|----------|
+| Anthropic |
+| OpenAI |
+| Google AI (Gemini) |
+| Google Vertex AI |
+| AWS Bedrock |
+| Azure OpenAI |
+| Ollama (Local) |
+| OpenRouter |
+| OpenAI Compatible APIs |
+
+### Default (Anthropic via BAML)
+
+Set your API key and you're ready to go:
+
+```bash
+export ANTHROPIC_API_KEY=your-key-here
+```
+
+### Swap providers at runtime
+
+Use `:client_registry` to switch providers without changing code:
 
 ```elixir
 {:ok, result} = PuckCoder.run("Add input validation",
@@ -64,17 +94,11 @@ export ANTHROPIC_API_KEY=your-key-here
 )
 ```
 
-### Observe each turn
-
-```elixir
-{:ok, result} = PuckCoder.run("Add logging to the API module",
-  on_action: fn action, turn ->
-    IO.puts("[Turn #{turn}] #{inspect(action)}")
-  end
-)
-```
+See the [BAML Client Registry docs](https://docs.boundaryml.com/guide/baml-advanced/llm-client-registry) for all supported provider options.
 
 ### Use a non-BAML backend
+
+Bypass BAML entirely and use any [Puck](https://github.com/bradleygolden/puck) backend directly:
 
 ```elixir
 client = Puck.Client.new(
