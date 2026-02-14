@@ -102,7 +102,7 @@ defmodule PuckCoder do
 
     skills = normalize_skills(client_opts)
 
-    client = build_client(client_opts, plugins, skills)
+    client = build_client(client_opts, skills)
 
     loop_opts =
       loop_opts
@@ -117,7 +117,7 @@ defmodule PuckCoder do
   Returns the default system prompt used when bypassing BAML.
 
   Use this when passing a custom `:client` to preserve the agent's
-  core behavior. Pass plugins to include their descriptions in the prompt.
+  core behavior.
 
   ## Example
 
@@ -127,9 +127,7 @@ defmodule PuckCoder do
       )
 
   """
-  def default_system_prompt(plugins \\ [], skills \\ []) do
-    _plugins = Enum.map(plugins, &PuckCoder.Plugin.normalize/1)
-
+  def default_system_prompt(skills \\ []) do
     base = """
     You are an expert coding agent. You modify codebases by reading files, writing files, editing files, and running shell commands.
 
@@ -156,17 +154,17 @@ defmodule PuckCoder do
     {client_keys, loop_keys}
   end
 
-  defp build_client(opts, plugins, skills) do
+  defp build_client(opts, skills) do
     case Keyword.get(opts, :client) do
       %Puck.Client{} = client ->
         client
 
       nil ->
-        build_baml_client(opts, plugins, skills)
+        build_baml_client(opts, skills)
     end
   end
 
-  defp build_baml_client(opts, _plugins, skills) do
+  defp build_baml_client(opts, skills) do
     base_instructions = Keyword.get(opts, :instructions, "")
     skill_text = build_skill_instructions(skills)
 

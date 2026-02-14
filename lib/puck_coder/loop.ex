@@ -139,8 +139,14 @@ defmodule PuckCoder.Loop do
       plugins
       |> Enum.filter(fn {mod, _opts} -> function_exported?(mod, :type_builder_fields, 0) end)
       |> Enum.reduce(%{}, fn {mod, _opts}, acc ->
-        Enum.reduce(mod.type_builder_fields(), acc, fn %{class: class, modules: modules}, inner ->
-          Map.update(inner, class, modules, &(&1 ++ modules))
+        Enum.reduce(mod.type_builder_fields(), acc, fn
+          %{class: class, modules: modules}, inner ->
+            Map.update(inner, class, modules, &(&1 ++ modules))
+
+          invalid, _inner ->
+            raise ArgumentError,
+                  "#{inspect(mod)}.type_builder_fields/0 returned invalid entry: #{inspect(invalid)}. " <>
+                    "Each entry must be a map with :class and :modules keys."
         end)
       end)
 
