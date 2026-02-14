@@ -33,8 +33,8 @@ defmodule PuckCoder.MixProject do
 
   defp deps do
     [
-      {:puck, "~> 0.2"},
-      {:baml_elixir, "~> 1.0.0-pre.24"},
+      {:puck, "~> 0.2.14"},
+      {:baml_elixir, "~> 1.0.0-pre.24.next.2", hex: :baml_elixir_next},
       {:zoi, "~> 0.17"},
       {:jason, "~> 1.4"},
       {:yaml_elixir, "~> 2.11"},
