@@ -26,8 +26,12 @@ class Done {
   message string @description("Final message summarizing what was accomplished")
 }
 
+enum PluginActionType {
+  @@dynamic
+}
+
 class PluginAction {
-  type string
+  type PluginActionType
   @@dynamic
 }
 
