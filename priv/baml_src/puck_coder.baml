@@ -58,9 +58,7 @@ client<llm> PuckCoderClient {
 }
 
 
-function CoderRun(messages: Message[], instructions: string) -> ReadFile | WriteFile | EditFile | Shell | Done | PluginAction {
-  client PuckCoderClient
-  prompt #"
+template_string CoderPrompt(messages: Message[], instructions: string) #"
     {{ _.role("system") }}
     You are an expert coding agent. You modify codebases by reading files, writing files, editing files, and running shell commands.
 
@@ -81,6 +79,19 @@ function CoderRun(messages: Message[], instructions: string) -> ReadFile | Write
     Respond with exactly one action. Available actions and their schemas:
 
     {{ ctx.output_format }}
+"#
+
+function CoderRun(messages: Message[], instructions: string) -> ReadFile | WriteFile | EditFile | Shell | Done {
+  client PuckCoderClient
+  prompt #"
+    {{ CoderPrompt(messages, instructions) }}
+  "#
+}
+
+function CoderRunWithPlugins(messages: Message[], instructions: string) -> ReadFile | WriteFile | EditFile | Shell | Done | PluginAction {
+  client PuckCoderClient
+  prompt #"
+    {{ CoderPrompt(messages, instructions) }}
   "#
 }
 
