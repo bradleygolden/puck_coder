@@ -53,6 +53,7 @@ client<llm> PuckCoderClient {
   }
 }
 
+
 function CoderRun(messages: Message[], instructions: string) -> ReadFile | WriteFile | EditFile | Shell | Done | PluginAction {
   client PuckCoderClient
   prompt #"
@@ -77,4 +78,106 @@ function CoderRun(messages: Message[], instructions: string) -> ReadFile | Write
 
     {{ ctx.output_format }}
   "#
+}
+
+test ReadFileAction {
+  functions [CoderRun]
+  args {
+    messages [
+      {
+        role "user"
+        content "Read the file at /tmp/example.txt"
+      }
+    ]
+    instructions ""
+  }
+  @@assert( {{ this.type == "read_file" }} )
+  @@assert( {{ "/tmp/example.txt" in this.path }} )
+}
+
+test WriteFileAction {
+  functions [CoderRun]
+  args {
+    messages [
+      {
+        role "user"
+        content "Create a new file at /tmp/hello.txt with the content: Hello, world!"
+      }
+    ]
+    instructions ""
+  }
+  @@assert( {{ this.type == "write_file" }} )
+  @@assert( {{ "/tmp/hello.txt" in this.path }} )
+  @@assert( {{ "Hello, world!" in this.content }} )
+}
+
+test EditFileAction {
+  functions [CoderRun]
+  args {
+    messages [
+      {
+        role "user"
+        content #"
+          Edit /tmp/config.yml and replace "debug: false" with "debug: true"
+        "#
+      },
+      {
+        role "assistant"
+        content #"{"type": "read_file", "path": "/tmp/config.yml"}"#
+      },
+      {
+        role "user"
+        content "debug: false\nlog_level: info"
+      }
+    ]
+    instructions ""
+  }
+  @@assert( {{ this.type == "edit_file" }} )
+  @@assert( {{ "/tmp/config.yml" in this.path }} )
+  @@assert( {{ "debug: false" in this.old_string }} )
+  @@assert( {{ "debug: true" in this.new_string }} )
+}
+
+test ShellAction {
+  functions [CoderRun]
+  args {
+    messages [
+      {
+        role "user"
+        content "Run the test suite with mix test"
+      }
+    ]
+    instructions ""
+  }
+  @@assert( {{ this.type == "shell" }} )
+  @@assert( {{ "mix test" in this.command }} )
+}
+
+test DoneAction {
+  functions [CoderRun]
+  args {
+    messages [
+      {
+        role "user"
+        content "I just wanted to say thanks, the task is complete."
+      }
+    ]
+    instructions ""
+  }
+  @@assert( {{ this.type == "done" }} )
+}
+
+test InstructionsAreFollowed {
+  functions [CoderRun]
+  args {
+    messages [
+      {
+        role "user"
+        content "Read /app/src/main.rs"
+      }
+    ]
+    instructions "Always run shell commands instead of reading files directly. Use cat to read files."
+  }
+  @@assert( {{ this.type == "shell" }} )
+  @@assert( {{ "cat" in this.command }} )
 }
