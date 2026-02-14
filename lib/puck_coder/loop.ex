@@ -126,6 +126,12 @@ defmodule PuckCoder.Loop do
         _ -> opts
       end
 
+    opts =
+      case collect_schema_descriptions(plugins) do
+        desc when map_size(desc) > 0 -> Keyword.put(opts, :schema_descriptions, desc)
+        _ -> opts
+      end
+
     case Puck.call(client, "Continue.", context, opts) do
       {:ok, response, new_context} ->
         {:ok, response.content, new_context}
@@ -143,6 +149,10 @@ defmodule PuckCoder.Loop do
         Map.update(inner, class, modules, &(&1 ++ modules))
       end)
     end)
+  end
+
+  defp collect_schema_descriptions(plugins) do
+    Map.new(plugins, fn {mod, _opts} -> {mod.name(), mod.description()} end)
   end
 
   # Built-in action execution

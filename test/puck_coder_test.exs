@@ -175,22 +175,22 @@ defmodule PuckCoderTest do
       assert String.contains?(prompt, "coding agent")
     end
 
-    test "includes plugin descriptions when plugins are provided" do
+    test "does not include plugin descriptions (descriptions flow through schema)" do
       prompt = PuckCoder.default_system_prompt([PuckCoder.TestPlugin])
-      assert String.contains?(prompt, "list_dir")
-      assert String.contains?(prompt, "List files in a directory")
+      refute String.contains?(prompt, "list_dir")
+      refute String.contains?(prompt, "List files in a directory")
     end
 
-    test "includes plugin descriptions for tuple format" do
+    test "does not include plugin descriptions for tuple format" do
       prompt = PuckCoder.default_system_prompt([{PuckCoder.TestPlugin, [some: "opt"]}])
-      assert String.contains?(prompt, "list_dir")
-      assert String.contains?(prompt, "List files in a directory")
+      refute String.contains?(prompt, "list_dir")
+      refute String.contains?(prompt, "List files in a directory")
     end
 
-    test "returns base prompt with no plugins" do
+    test "returns same base prompt with or without plugins" do
       with_plugins = PuckCoder.default_system_prompt([PuckCoder.TestPlugin])
       without_plugins = PuckCoder.default_system_prompt()
-      assert String.length(with_plugins) > String.length(without_plugins)
+      assert with_plugins == without_plugins
     end
   end
 
@@ -210,7 +210,7 @@ defmodule PuckCoderTest do
       assert prompt =~ "read its SKILL.md file"
     end
 
-    test "includes both plugins and skills" do
+    test "includes skills but not plugin descriptions" do
       skill =
         PuckCoder.Skill.new!(%{
           name: "pdf",
@@ -220,7 +220,7 @@ defmodule PuckCoderTest do
 
       prompt = PuckCoder.default_system_prompt([PuckCoder.TestPlugin], [skill])
 
-      assert prompt =~ "list_dir"
+      refute prompt =~ "list_dir"
       assert prompt =~ "<available_skills>"
       assert prompt =~ ~s(name="pdf")
     end

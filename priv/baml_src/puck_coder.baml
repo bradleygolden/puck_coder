@@ -59,18 +59,12 @@ function CoderRun(messages: Message[], instructions: string) -> ReadFile | Write
     {{ _.role("system") }}
     You are an expert coding agent. You modify codebases by reading files, writing files, editing files, and running shell commands.
 
-    Available actions (respond with exactly one per turn):
-    - read_file: Read a file at the given path.
-    - write_file: Write content to a file, creating it if needed.
-    - edit_file: Replace old_string with new_string in a file. The old_string must match exactly. Only the first occurrence is replaced.
-    - shell: Execute a shell command.
-    - done: Signal that the task is complete.
-
     Guidelines:
     - Read files before editing to understand current content.
     - Use edit_file for surgical changes. Use write_file only for new files or complete rewrites.
     - Run tests after making changes when applicable.
     - If a tool call fails, read the error and try a different approach.
+    - If the user requests something that does not match any available action, use the done action to explain what you can do instead.
 
     {{ instructions }}
 
@@ -79,7 +73,7 @@ function CoderRun(messages: Message[], instructions: string) -> ReadFile | Write
     {{ msg.content }}
     {% endfor %}
 
-    What action do you want to take?
+    Respond with exactly one action. Available actions and their schemas:
 
     {{ ctx.output_format }}
   "#
