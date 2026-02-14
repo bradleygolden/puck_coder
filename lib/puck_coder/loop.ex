@@ -118,13 +118,31 @@ defmodule PuckCoder.Loop do
   end
 
   defp call_llm(client, context, plugins) do
-    case Puck.call(client, "Continue.", context, output_schema: Tools.schema(plugins)) do
+    opts = [output_schema: Tools.schema(plugins)]
+
+    opts =
+      case collect_dynamic_classes(plugins) do
+        dc when map_size(dc) > 0 -> Keyword.put(opts, :dynamic_classes, dc)
+        _ -> opts
+      end
+
+    case Puck.call(client, "Continue.", context, opts) do
       {:ok, response, new_context} ->
         {:ok, response.content, new_context}
 
       {:error, reason} ->
         {:error, reason}
     end
+  end
+
+  defp collect_dynamic_classes(plugins) do
+    plugins
+    |> Enum.filter(fn {mod, _opts} -> function_exported?(mod, :type_builder_fields, 0) end)
+    |> Enum.reduce(%{}, fn {mod, _opts}, acc ->
+      Enum.reduce(mod.type_builder_fields(), acc, fn %{class: class, modules: modules}, inner ->
+        Map.update(inner, class, modules, &(&1 ++ modules))
+      end)
+    end)
   end
 
   # Built-in action execution
