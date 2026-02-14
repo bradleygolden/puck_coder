@@ -102,7 +102,7 @@ defmodule PuckCoder do
 
     skills = normalize_skills(client_opts)
 
-    client = build_client(client_opts, skills)
+    client = build_client(client_opts, skills, plugins)
 
     loop_opts =
       loop_opts
@@ -154,17 +154,17 @@ defmodule PuckCoder do
     {client_keys, loop_keys}
   end
 
-  defp build_client(opts, skills) do
+  defp build_client(opts, skills, plugins) do
     case Keyword.get(opts, :client) do
       %Puck.Client{} = client ->
         client
 
       nil ->
-        build_baml_client(opts, skills)
+        build_baml_client(opts, skills, plugins)
     end
   end
 
-  defp build_baml_client(opts, skills) do
+  defp build_baml_client(opts, skills, plugins) do
     base_instructions = Keyword.get(opts, :instructions, "")
     skill_text = build_skill_instructions(skills)
 
@@ -175,9 +175,12 @@ defmodule PuckCoder do
 
     client_registry = Keyword.get(opts, :client_registry)
 
+    function_name =
+      if plugins == [], do: "CoderRun", else: "CoderRunWithPlugins"
+
     backend_config =
       %{
-        function: "CoderRun",
+        function: function_name,
         args_format: :auto,
         args: fn messages ->
           %{

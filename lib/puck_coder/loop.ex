@@ -150,6 +150,21 @@ defmodule PuckCoder.Loop do
         end)
       end)
 
+    plugin_modules =
+      Enum.flat_map(plugins, fn {mod, _opts} ->
+        case mod.schema() do
+          %Zoi.Types.Struct{module: action_mod} -> [action_mod]
+          _ -> []
+        end
+      end)
+
+    dc =
+      if plugin_modules != [] do
+        Map.update(dc, "PluginAction", plugin_modules, &(&1 ++ plugin_modules))
+      else
+        dc
+      end
+
     case dc do
       dc when map_size(dc) > 0 -> Keyword.put(backend_opts, :dynamic_classes, dc)
       _ -> backend_opts
