@@ -1,9 +1,10 @@
 defmodule PuckCoder.IntegrationCase do
   @moduledoc """
-  ExUnit case template for integration tests against a local Ollama instance.
+  ExUnit case template for integration tests against the Anthropic API.
 
   Tags every test with `:integration` (excluded by default in test_helper.exs)
-  and provides a setup that builds a BAML client_registry pointing at Ollama.
+  and provides a setup that builds a BAML client_registry pointing at Anthropic.
+  Requires the ANTHROPIC_API_KEY environment variable to be set.
 
   ## Usage
 
@@ -20,8 +21,7 @@ defmodule PuckCoder.IntegrationCase do
 
   use ExUnit.CaseTemplate
 
-  @ollama_model "qwen3:1.7b"
-  @ollama_base_url "http://localhost:11434/v1"
+  @model "claude-haiku-4-5"
 
   using do
     quote do
@@ -30,7 +30,7 @@ defmodule PuckCoder.IntegrationCase do
   end
 
   setup do
-    check_ollama_available!()
+    check_api_key!()
 
     tmp_dir =
       Path.join(System.tmp_dir!(), "puck_coder_integration_#{System.unique_integer([:positive])}")
@@ -41,27 +41,22 @@ defmodule PuckCoder.IntegrationCase do
     client_registry = %{
       "clients" => [
         %{
-          "name" => "OllamaClient",
-          "provider" => "ollama",
+          "name" => "AnthropicClient",
+          "provider" => "anthropic",
           "options" => %{
-            "model" => @ollama_model,
-            "base_url" => @ollama_base_url
+            "model" => @model
           }
         }
       ],
-      "primary" => "OllamaClient"
+      "primary" => "AnthropicClient"
     }
 
     %{client_registry: client_registry, tmp_dir: tmp_dir}
   end
 
-  defp check_ollama_available! do
-    case :httpc.request(:get, {~c"http://localhost:11434/api/tags", []}, [timeout: 5_000], []) do
-      {:ok, {{_, 200, _}, _, _}} ->
-        :ok
-
-      _ ->
-        raise "Ollama is not running at localhost:11434. Start it with: ollama serve"
+  defp check_api_key! do
+    unless System.get_env("ANTHROPIC_API_KEY") do
+      raise "ANTHROPIC_API_KEY environment variable must be set to run integration tests"
     end
   end
 end

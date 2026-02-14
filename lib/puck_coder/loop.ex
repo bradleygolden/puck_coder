@@ -119,7 +119,7 @@ defmodule PuckCoder.Loop do
 
   defp call_llm(client, context, plugins) do
     backend_opts =
-      %{}
+      []
       |> maybe_put_dynamic_classes(plugins)
       |> maybe_put_schema_descriptions(plugins)
 
@@ -151,7 +151,7 @@ defmodule PuckCoder.Loop do
       end)
 
     case dc do
-      dc when map_size(dc) > 0 -> Map.put(backend_opts, :dynamic_classes, dc)
+      dc when map_size(dc) > 0 -> Keyword.put(backend_opts, :dynamic_classes, dc)
       _ -> backend_opts
     end
   end
@@ -160,7 +160,7 @@ defmodule PuckCoder.Loop do
     desc = Map.new(plugins, fn {mod, _opts} -> {mod.name(), mod.description()} end)
 
     case desc do
-      desc when map_size(desc) > 0 -> Map.put(backend_opts, :schema_descriptions, desc)
+      desc when map_size(desc) > 0 -> Keyword.put(backend_opts, :schema_descriptions, desc)
       _ -> backend_opts
     end
   end

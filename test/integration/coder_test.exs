@@ -82,6 +82,28 @@ defmodule PuckCoder.Integration.CoderTest do
     end
   end
 
+  describe "plugin action" do
+    test "agent uses a plugin action to list directory contents", %{
+      client_registry: client_registry,
+      tmp_dir: tmp_dir
+    } do
+      File.write!(Path.join(tmp_dir, "alpha.txt"), "a")
+      File.write!(Path.join(tmp_dir, "beta.txt"), "b")
+
+      assert {:ok, result} =
+               PuckCoder.run(
+                 "List the files in the directory #{tmp_dir} using the list_dir action. Include the filenames in your done message.",
+                 client_registry: client_registry,
+                 plugins: [PuckCoder.TestPlugin],
+                 executor_opts: [cwd: tmp_dir],
+                 max_turns: 10
+               )
+
+      assert result.message =~ "alpha.txt"
+      assert result.message =~ "beta.txt"
+    end
+  end
+
   describe "multi-step task" do
     test "agent fixes a bug and verifies the fix", %{
       client_registry: client_registry,
