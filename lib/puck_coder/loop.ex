@@ -118,13 +118,12 @@ defmodule PuckCoder.Loop do
   end
 
   defp call_llm(client, context, plugins) do
-    opts = [output_schema: Tools.schema(plugins)]
+    backend_opts =
+      []
+      |> maybe_put_dynamic_classes(plugins)
+      |> maybe_put_schema_descriptions(plugins)
 
-    opts =
-      case collect_dynamic_classes(plugins) do
-        dc when map_size(dc) > 0 -> Keyword.put(opts, :dynamic_classes, dc)
-        _ -> opts
-      end
+    opts = [output_schema: Tools.schema(plugins), backend_opts: backend_opts]
 
     case Puck.call(client, "Continue.", context, opts) do
       {:ok, response, new_context} ->
@@ -135,14 +134,35 @@ defmodule PuckCoder.Loop do
     end
   end
 
-  defp collect_dynamic_classes(plugins) do
-    plugins
-    |> Enum.filter(fn {mod, _opts} -> function_exported?(mod, :type_builder_fields, 0) end)
-    |> Enum.reduce(%{}, fn {mod, _opts}, acc ->
-      Enum.reduce(mod.type_builder_fields(), acc, fn %{class: class, modules: modules}, inner ->
-        Map.update(inner, class, modules, &(&1 ++ modules))
+  defp maybe_put_dynamic_classes(backend_opts, plugins) do
+    dc =
+      plugins
+      |> Enum.filter(fn {mod, _opts} -> function_exported?(mod, :type_builder_fields, 0) end)
+      |> Enum.reduce(%{}, fn {mod, _opts}, acc ->
+        Enum.reduce(mod.type_builder_fields(), acc, fn
+          %{class: class, modules: modules}, inner ->
+            Map.update(inner, class, modules, &(&1 ++ modules))
+
+          invalid, _inner ->
+            raise ArgumentError,
+                  "#{inspect(mod)}.type_builder_fields/0 returned invalid entry: #{inspect(invalid)}. " <>
+                    "Each entry must be a map with :class and :modules keys."
+        end)
       end)
-    end)
+
+    case dc do
+      dc when map_size(dc) > 0 -> Keyword.put(backend_opts, :dynamic_classes, dc)
+      _ -> backend_opts
+    end
+  end
+
+  defp maybe_put_schema_descriptions(backend_opts, plugins) do
+    desc = Map.new(plugins, fn {mod, _opts} -> {mod.name(), mod.description()} end)
+
+    case desc do
+      desc when map_size(desc) > 0 -> Keyword.put(backend_opts, :schema_descriptions, desc)
+      _ -> backend_opts
+    end
   end
 
   # Built-in action execution

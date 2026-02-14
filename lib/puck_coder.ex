@@ -102,7 +102,7 @@ defmodule PuckCoder do
 
     skills = normalize_skills(client_opts)
 
-    client = build_client(client_opts, plugins, skills)
+    client = build_client(client_opts, skills)
 
     loop_opts =
       loop_opts
@@ -117,7 +117,7 @@ defmodule PuckCoder do
   Returns the default system prompt used when bypassing BAML.
 
   Use this when passing a custom `:client` to preserve the agent's
-  core behavior. Pass plugins to include their descriptions in the prompt.
+  core behavior.
 
   ## Example
 
@@ -127,31 +127,17 @@ defmodule PuckCoder do
       )
 
   """
-  def default_system_prompt(plugins \\ [], skills \\ []) do
-    plugins = Enum.map(plugins, &PuckCoder.Plugin.normalize/1)
-
+  def default_system_prompt(skills \\ []) do
     base = """
     You are an expert coding agent. You modify codebases by reading files, writing files, editing files, and running shell commands.
-
-    Available actions (respond with exactly one JSON object per turn):
-    - {"type": "read_file", "path": "<absolute path>"} — Read a file.
-    - {"type": "write_file", "path": "<absolute path>", "content": "<full content>"} — Write a file (creates if needed).
-    - {"type": "edit_file", "path": "<absolute path>", "old_string": "<exact match>", "new_string": "<replacement>"} — Replace first occurrence of old_string.
-    - {"type": "shell", "command": "<command>"} — Execute a shell command.
-    - {"type": "done", "message": "<summary>"} — Signal task completion.
 
     Guidelines:
     - Read files before editing to understand current content.
     - Use edit_file for surgical changes. Use write_file only for new files or complete rewrites.
     - Run tests after making changes when applicable.
     - If a tool call fails, read the error and try a different approach.
+    - If the user requests something that does not match any available action, use the done action to explain what you can do instead.
     """
-
-    base =
-      case build_plugin_instructions(plugins) do
-        "" -> base
-        plugin_text -> base <> "\nAdditional actions:\n" <> plugin_text <> "\n"
-      end
 
     case build_skill_instructions(skills) do
       "" -> base
@@ -168,24 +154,22 @@ defmodule PuckCoder do
     {client_keys, loop_keys}
   end
 
-  defp build_client(opts, plugins, skills) do
+  defp build_client(opts, skills) do
     case Keyword.get(opts, :client) do
       %Puck.Client{} = client ->
         client
 
       nil ->
-        build_baml_client(opts, plugins, skills)
+        build_baml_client(opts, skills)
     end
   end
 
-  defp build_baml_client(opts, plugins, skills) do
+  defp build_baml_client(opts, skills) do
     base_instructions = Keyword.get(opts, :instructions, "")
-    plugin_text = build_plugin_instructions(plugins)
     skill_text = build_skill_instructions(skills)
 
     instructions =
       [base_instructions]
-      |> maybe_append("Additional actions:\n" <> plugin_text, plugin_text != "")
       |> maybe_append(skill_text, skill_text != "")
       |> Enum.join("\n\n")
 
@@ -206,14 +190,6 @@ defmodule PuckCoder do
       |> maybe_put(:client_registry, client_registry)
 
     Puck.Client.new({Puck.Backends.Baml, backend_config})
-  end
-
-  defp build_plugin_instructions([]), do: ""
-
-  defp build_plugin_instructions(plugins) do
-    Enum.map_join(plugins, "\n", fn {mod, _opts} ->
-      "- #{mod.name()}: #{mod.description()}"
-    end)
   end
 
   defp build_skill_instructions([]), do: ""
