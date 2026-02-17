@@ -37,9 +37,19 @@ defmodule PuckCoder.Loop do
     plugins = Keyword.get(opts, :plugins, [])
 
     plugin_map = build_plugin_map(plugins)
-    context = Context.add_message(context, :user, task)
 
-    loop(client, context, executor, executor_opts, max_turns, on_action, plugins, plugin_map, 0)
+    loop(
+      client,
+      task,
+      context,
+      executor,
+      executor_opts,
+      max_turns,
+      on_action,
+      plugins,
+      plugin_map,
+      0
+    )
   end
 
   defp build_plugin_map(plugins) do
@@ -48,6 +58,7 @@ defmodule PuckCoder.Loop do
 
   defp loop(
          _client,
+         _input,
          context,
          _executor,
          _executor_opts,
@@ -63,6 +74,7 @@ defmodule PuckCoder.Loop do
 
   defp loop(
          client,
+         input,
          context,
          executor,
          executor_opts,
@@ -72,7 +84,7 @@ defmodule PuckCoder.Loop do
          plugin_map,
          turn
        ) do
-    case call_llm(client, context, plugins) do
+    case call_llm(client, input, context, plugins) do
       {:ok, action, new_context} ->
         if on_action, do: on_action.(action, turn)
 
@@ -96,11 +108,11 @@ defmodule PuckCoder.Loop do
               _ ->
                 label = action_label(action, plugin_map)
                 result_text = format_result(label, action, result, plugin_map)
-                updated_context = Context.add_message(new_context, :user, result_text)
 
                 loop(
                   client,
-                  updated_context,
+                  result_text,
+                  new_context,
                   executor,
                   executor_opts,
                   max_turns,
@@ -117,7 +129,7 @@ defmodule PuckCoder.Loop do
     end
   end
 
-  defp call_llm(client, context, plugins) do
+  defp call_llm(client, input, context, plugins) do
     backend_opts =
       []
       |> maybe_put_dynamic_classes(plugins)
@@ -125,7 +137,7 @@ defmodule PuckCoder.Loop do
 
     opts = [output_schema: Tools.schema(plugins), backend_opts: backend_opts]
 
-    case Puck.call(client, "Continue.", context, opts) do
+    case Puck.call(client, input, context, opts) do
       {:ok, response, new_context} ->
         {:ok, response.content, new_context}
 
