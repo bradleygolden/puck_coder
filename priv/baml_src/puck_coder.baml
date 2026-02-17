@@ -76,8 +76,6 @@ template_string CoderPrompt(messages: Message[], instructions: string) #"
     {{ msg.content }}
     {% endfor %}
 
-    Respond with exactly one action. Available actions and their schemas:
-
     {{ ctx.output_format }}
 "#
 
