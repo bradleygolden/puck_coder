@@ -1,12 +1,14 @@
 class ReadFile {
   type "read_file" @stream.not_null
   path string @description("Absolute path to the file to read")
+  description string @description("Brief user-friendly status shown to the user, e.g. 'Reading configuration file'")
 }
 
 class WriteFile {
   type "write_file" @stream.not_null
   path string @description("Absolute path to write to")
   content string @description("Complete file content to write")
+  description string @description("Brief user-friendly status shown to the user, e.g. 'Saving updated configuration'")
 }
 
 class EditFile {
@@ -14,11 +16,13 @@ class EditFile {
   path string @description("Absolute path to the file to edit")
   old_string string @description("Exact string to find and replace (first occurrence only)")
   new_string string @description("Replacement string")
+  description string @description("Brief user-friendly status shown to the user, e.g. 'Updating debug setting'")
 }
 
 class Shell {
   type "shell" @stream.not_null
   command string @description("Shell command to execute")
+  description string @description("Brief user-friendly status shown to the user, e.g. 'Searching for recent emails'")
 }
 
 class Done {

@@ -39,7 +39,8 @@ defmodule PuckCoder.Tools do
       ReadFile,
       %{
         type: Zoi.enum(["read_file"]),
-        path: Zoi.string()
+        path: Zoi.string(),
+        description: Zoi.string(description: "Brief user-friendly status shown to the user")
       },
       coerce: true
     )
@@ -51,7 +52,8 @@ defmodule PuckCoder.Tools do
       %{
         type: Zoi.enum(["write_file"]),
         path: Zoi.string(),
-        content: Zoi.string()
+        content: Zoi.string(),
+        description: Zoi.string(description: "Brief user-friendly status shown to the user")
       },
       coerce: true
     )
@@ -64,7 +66,8 @@ defmodule PuckCoder.Tools do
         type: Zoi.enum(["edit_file"]),
         path: Zoi.string(),
         old_string: Zoi.string(),
-        new_string: Zoi.string()
+        new_string: Zoi.string(),
+        description: Zoi.string(description: "Brief user-friendly status shown to the user")
       },
       coerce: true
     )
@@ -75,7 +78,8 @@ defmodule PuckCoder.Tools do
       Shell,
       %{
         type: Zoi.enum(["shell"]),
-        command: Zoi.string()
+        command: Zoi.string(),
+        description: Zoi.string(description: "Brief user-friendly status shown to the user")
       },
       coerce: true
     )

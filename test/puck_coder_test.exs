@@ -23,7 +23,7 @@ defmodule PuckCoderTest do
 
       client =
         Puck.Test.mock_client([
-          %{"type" => "read_file", "path" => tmp},
+          %{"type" => "read_file", "path" => tmp, "description" => "Reading file"},
           %{"type" => "done", "message" => "Read it."}
         ])
 

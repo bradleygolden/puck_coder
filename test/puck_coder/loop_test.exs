@@ -28,7 +28,7 @@ defmodule PuckCoder.LoopTest do
 
       client =
         Puck.Test.mock_client([
-          %{"type" => "read_file", "path" => tmp},
+          %{"type" => "read_file", "path" => tmp, "description" => "Reading file"},
           %{"type" => "done", "message" => "Read the file."}
         ])
 
@@ -46,7 +46,12 @@ defmodule PuckCoder.LoopTest do
 
       client =
         Puck.Test.mock_client([
-          %{"type" => "write_file", "path" => tmp, "content" => "new content"},
+          %{
+            "type" => "write_file",
+            "path" => tmp,
+            "content" => "new content",
+            "description" => "Writing file"
+          },
           %{"type" => "done", "message" => "Wrote the file."}
         ])
 
@@ -60,7 +65,7 @@ defmodule PuckCoder.LoopTest do
     test "executes shell then done" do
       client =
         Puck.Test.mock_client([
-          %{"type" => "shell", "command" => "echo hello"},
+          %{"type" => "shell", "command" => "echo hello", "description" => "Running echo"},
           %{"type" => "done", "message" => "Ran the command."}
         ])
 
@@ -75,11 +80,11 @@ defmodule PuckCoder.LoopTest do
       client =
         Puck.Test.mock_client(
           [
-            %{"type" => "shell", "command" => "echo 1"},
-            %{"type" => "shell", "command" => "echo 2"},
-            %{"type" => "shell", "command" => "echo 3"}
+            %{"type" => "shell", "command" => "echo 1", "description" => "Step 1"},
+            %{"type" => "shell", "command" => "echo 2", "description" => "Step 2"},
+            %{"type" => "shell", "command" => "echo 3", "description" => "Step 3"}
           ],
-          default: %{"type" => "shell", "command" => "echo loop"}
+          default: %{"type" => "shell", "command" => "echo loop", "description" => "Looping"}
         )
 
       assert {:error, :max_turns_exceeded, %{turns: 2}} =
@@ -89,7 +94,11 @@ defmodule PuckCoder.LoopTest do
     test "feeds error results back to LLM" do
       client =
         Puck.Test.mock_client([
-          %{"type" => "read_file", "path" => "/nonexistent/does_not_exist.txt"},
+          %{
+            "type" => "read_file",
+            "path" => "/nonexistent/does_not_exist.txt",
+            "description" => "Reading missing file"
+          },
           %{"type" => "done", "message" => "Handled the error."}
         ])
 
@@ -104,7 +113,7 @@ defmodule PuckCoder.LoopTest do
 
       client =
         Puck.Test.mock_client([
-          %{"type" => "shell", "command" => "echo hi"},
+          %{"type" => "shell", "command" => "echo hi", "description" => "Saying hi"},
           %{"type" => "done", "message" => "Done."}
         ])
 
@@ -115,7 +124,7 @@ defmodule PuckCoder.LoopTest do
       assert {:ok, _result} =
                PuckCoder.Loop.run("Test callback", client: client, on_action: on_action)
 
-      assert_received {:action, %Shell{command: "echo hi"}, 0}
+      assert_received {:action, %Shell{command: "echo hi", description: "Saying hi"}, 0}
       assert_received {:action, %Done{message: "Done."}, 1}
     end
 
