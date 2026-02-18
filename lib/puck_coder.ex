@@ -74,8 +74,8 @@ defmodule PuckCoder do
   - `:skills` - List of `PuckCoder.Skill` structs or maps with `:name`, `:description`, `:path`
   - `:executor` - Module implementing `PuckCoder.Executor` (default: `PuckCoder.Executors.Local`)
   - `:executor_opts` - Keyword list passed to executor callbacks (e.g., `[cwd: "/path"]`)
+  - `:hooks` - `Puck.Hooks` module(s) for lifecycle events (set on the client)
   - `:max_turns` - Maximum loop iterations (default: #{@default_max_turns})
-  - `:on_action` - Callback `fn action, turn -> :ok end` for per-turn observation
   - `:context` - Initial `Puck.Context` (default: fresh)
 
   ## Returns
@@ -148,7 +148,7 @@ defmodule PuckCoder do
   defp split_opts(opts) do
     {client_keys, loop_keys} =
       Enum.split_with(opts, fn {k, _} ->
-        k in [:client, :client_registry, :instructions, :skills]
+        k in [:client, :client_registry, :instructions, :skills, :hooks]
       end)
 
     {client_keys, loop_keys}
@@ -192,7 +192,8 @@ defmodule PuckCoder do
       }
       |> maybe_put(:client_registry, client_registry)
 
-    Puck.Client.new({Puck.Backends.Baml, backend_config})
+    hooks = Keyword.get(opts, :hooks)
+    Puck.Client.new({Puck.Backends.Baml, backend_config}, hooks: hooks)
   end
 
   defp build_skill_instructions([]), do: ""

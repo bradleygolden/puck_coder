@@ -3,8 +3,6 @@ defmodule PuckCoder.LoopTest do
 
   import Puck.Test, only: [verify_on_exit!: 1]
 
-  alias PuckCoder.Actions.{Done, Shell}
-
   setup :verify_on_exit!
 
   describe "run/2" do
@@ -108,26 +106,6 @@ defmodule PuckCoder.LoopTest do
       assert result.message == "Handled the error."
     end
 
-    test "calls on_action callback" do
-      test_pid = self()
-
-      client =
-        Puck.Test.mock_client([
-          %{"type" => "shell", "command" => "echo hi", "description" => "Saying hi"},
-          %{"type" => "done", "message" => "Done."}
-        ])
-
-      on_action = fn action, turn ->
-        send(test_pid, {:action, action, turn})
-      end
-
-      assert {:ok, _result} =
-               PuckCoder.Loop.run("Test callback", client: client, on_action: on_action)
-
-      assert_received {:action, %Shell{command: "echo hi", description: "Saying hi"}, 0}
-      assert_received {:action, %Done{message: "Done."}, 1}
-    end
-
     test "dispatches plugin action to plugin.execute/3" do
       tmp_dir = System.tmp_dir!()
 
@@ -163,28 +141,6 @@ defmodule PuckCoder.LoopTest do
       assert result.message == "Halt recorded."
       assert result.halt_metadata == %{reason: "sleepy", seconds: 30}
       assert result.turns == 1
-    end
-
-    test "on_action callback fires before halt" do
-      test_pid = self()
-
-      client =
-        Puck.Test.mock_client([
-          %{"type" => "halt_me", "reason" => "pause", "seconds" => 10}
-        ])
-
-      on_action = fn action, turn ->
-        send(test_pid, {:action, action, turn})
-      end
-
-      assert {:halt, _result} =
-               PuckCoder.Loop.run("Halt callback test",
-                 client: client,
-                 plugins: [{PuckCoder.HaltPlugin, []}],
-                 on_action: on_action
-               )
-
-      assert_received {:action, %PuckCoder.HaltPlugin.Action{reason: "pause", seconds: 10}, 0}
     end
 
     test "passes plugin_opts to plugin.execute/3" do

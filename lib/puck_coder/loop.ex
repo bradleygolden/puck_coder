@@ -23,7 +23,6 @@ defmodule PuckCoder.Loop do
   - `:executor` - Module implementing `PuckCoder.Executor` (default: `PuckCoder.Executors.Local`)
   - `:executor_opts` - Keyword list passed to executor callbacks
   - `:max_turns` - Maximum loop iterations (default: 200)
-  - `:on_action` - Callback `fn action, turn -> :ok end` for observation
   - `:context` - Initial `Puck.Context` (default: fresh)
   - `:plugins` - List of `PuckCoder.Plugin` modules for custom actions
   """
@@ -32,7 +31,6 @@ defmodule PuckCoder.Loop do
     executor = Keyword.get(opts, :executor, PuckCoder.Executors.Local)
     executor_opts = Keyword.get(opts, :executor_opts, [])
     max_turns = Keyword.get(opts, :max_turns, 200)
-    on_action = Keyword.get(opts, :on_action)
     context = Keyword.get(opts, :context, Context.new())
     plugins = Keyword.get(opts, :plugins, [])
 
@@ -45,7 +43,6 @@ defmodule PuckCoder.Loop do
       executor,
       executor_opts,
       max_turns,
-      on_action,
       plugins,
       plugin_map,
       0
@@ -63,7 +60,6 @@ defmodule PuckCoder.Loop do
          _executor,
          _executor_opts,
          max_turns,
-         _on_action,
          _plugins,
          _plugin_map,
          turn
@@ -79,15 +75,12 @@ defmodule PuckCoder.Loop do
          executor,
          executor_opts,
          max_turns,
-         on_action,
          plugins,
          plugin_map,
          turn
        ) do
     case call_llm(client, input, context, plugins) do
       {:ok, action, new_context} ->
-        if on_action, do: on_action.(action, turn)
-
         case action do
           %Done{message: message} ->
             {:ok, %{message: message, turns: turn + 1, context: new_context}}
@@ -116,7 +109,6 @@ defmodule PuckCoder.Loop do
                   executor,
                   executor_opts,
                   max_turns,
-                  on_action,
                   plugins,
                   plugin_map,
                   turn + 1
