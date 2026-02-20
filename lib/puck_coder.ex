@@ -75,6 +75,8 @@ defmodule PuckCoder do
   - `:executor` - Module implementing `PuckCoder.Executor` (default: `PuckCoder.Executors.Local`)
   - `:executor_opts` - Keyword list passed to executor callbacks (e.g., `[cwd: "/path"]`)
   - `:hooks` - `Puck.Hooks` module(s) for lifecycle events (set on the client)
+  - `:on_llm_chunk` - Optional callback invoked for each streamed LLM chunk
+  - `:on_llm_response` - Optional callback invoked after each parsed LLM response
   - `:max_turns` - Maximum loop iterations (default: #{@default_max_turns})
   - `:context` - Initial `Puck.Context` (default: fresh)
 

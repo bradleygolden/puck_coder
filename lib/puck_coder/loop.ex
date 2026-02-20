@@ -25,6 +25,8 @@ defmodule PuckCoder.Loop do
   - `:max_turns` - Maximum loop iterations (default: 200)
   - `:context` - Initial `Puck.Context` (default: fresh)
   - `:plugins` - List of `PuckCoder.Plugin` modules for custom actions
+  - `:on_llm_chunk` - Optional callback invoked for each streamed LLM chunk
+  - `:on_llm_response` - Optional callback invoked after each parsed LLM response
   """
   def run(task, opts) do
     client = Keyword.fetch!(opts, :client)
@@ -33,6 +35,11 @@ defmodule PuckCoder.Loop do
     max_turns = Keyword.get(opts, :max_turns, 200)
     context = Keyword.get(opts, :context, Context.new())
     plugins = Keyword.get(opts, :plugins, [])
+
+    callbacks = %{
+      on_llm_chunk: Keyword.get(opts, :on_llm_chunk),
+      on_llm_response: Keyword.get(opts, :on_llm_response)
+    }
 
     plugin_map = build_plugin_map(plugins)
 
@@ -45,7 +52,8 @@ defmodule PuckCoder.Loop do
       max_turns,
       plugins,
       plugin_map,
-      0
+      0,
+      callbacks
     )
   end
 
@@ -62,7 +70,8 @@ defmodule PuckCoder.Loop do
          max_turns,
          _plugins,
          _plugin_map,
-         turn
+         turn,
+         _callbacks
        )
        when turn >= max_turns do
     {:error, :max_turns_exceeded, %{turns: turn, context: context}}
@@ -77,10 +86,13 @@ defmodule PuckCoder.Loop do
          max_turns,
          plugins,
          plugin_map,
-         turn
+         turn,
+         callbacks
        ) do
-    case call_llm(client, input, context, plugins) do
+    case call_llm(client, input, context, plugins, callbacks) do
       {:ok, action, new_context} ->
+        maybe_invoke_on_llm_response(callbacks, action, new_context, turn + 1)
+
         case action do
           %Done{message: message} ->
             {:ok, %{message: message, turns: turn + 1, context: new_context}}
@@ -111,7 +123,8 @@ defmodule PuckCoder.Loop do
                   max_turns,
                   plugins,
                   plugin_map,
-                  turn + 1
+                  turn + 1,
+                  callbacks
                 )
             end
         end
@@ -121,7 +134,7 @@ defmodule PuckCoder.Loop do
     end
   end
 
-  defp call_llm(client, input, context, plugins) do
+  defp call_llm(client, input, context, plugins, callbacks) do
     backend_opts =
       []
       |> maybe_put_dynamic_classes(plugins)
@@ -129,12 +142,61 @@ defmodule PuckCoder.Loop do
 
     opts = [output_schema: Tools.schema(plugins), backend_opts: backend_opts]
 
-    case Puck.call(client, input, context, opts) do
-      {:ok, response, new_context} ->
-        {:ok, response.content, new_context}
+    case Puck.stream(client, input, context, opts) do
+      {:ok, stream, stream_context} ->
+        {last_chunk, final_content} =
+          Enum.reduce(stream, {nil, nil}, fn chunk, {_last_chunk, acc_content} ->
+            maybe_invoke_on_llm_chunk(callbacks, chunk, stream_context)
+            {chunk, content_from_chunk(chunk, acc_content)}
+          end)
+
+        case final_content do
+          nil ->
+            {:error, :empty_stream}
+
+          content ->
+            metadata = chunk_metadata(last_chunk)
+            new_context = Context.add_message(stream_context, :assistant, content, metadata)
+            {:ok, content, new_context}
+        end
 
       {:error, reason} ->
         {:error, reason}
+    end
+  end
+
+  defp content_from_chunk(%{type: :content, content: content}, _acc), do: content
+  defp content_from_chunk(_chunk, acc), do: acc
+
+  defp chunk_metadata(%{metadata: metadata}) when is_map(metadata), do: metadata
+  defp chunk_metadata(_), do: %{}
+
+  defp maybe_invoke_on_llm_chunk(%{on_llm_chunk: nil}, _chunk, _context), do: :ok
+
+  defp maybe_invoke_on_llm_chunk(%{on_llm_chunk: callback}, chunk, context) do
+    try do
+      cond do
+        is_function(callback, 2) -> callback.(chunk, context)
+        is_function(callback, 1) -> callback.(chunk)
+        true -> :ok
+      end
+    rescue
+      _ -> :ok
+    end
+  end
+
+  defp maybe_invoke_on_llm_response(%{on_llm_response: nil}, _action, _context, _turn), do: :ok
+
+  defp maybe_invoke_on_llm_response(%{on_llm_response: callback}, action, context, turn) do
+    try do
+      cond do
+        is_function(callback, 3) -> callback.(action, context, turn)
+        is_function(callback, 2) -> callback.(action, context)
+        is_function(callback, 1) -> callback.(action)
+        true -> :ok
+      end
+    rescue
+      _ -> :ok
     end
   end
 

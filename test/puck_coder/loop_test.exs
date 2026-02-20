@@ -161,5 +161,33 @@ defmodule PuckCoder.LoopTest do
       assert executor_opts == [cwd: "/tmp"]
       assert plugin_opts == [some: "opt"]
     end
+
+    test "invokes streaming callbacks for chunks and parsed responses" do
+      test_pid = self()
+
+      client =
+        Puck.Test.mock_client([
+          %{"type" => "done", "message" => "Streamed completion."}
+        ])
+
+      assert {:ok, result} =
+               PuckCoder.Loop.run("Do nothing",
+                 client: client,
+                 on_llm_chunk: fn chunk, _context -> send(test_pid, {:llm_chunk, chunk}) end,
+                 on_llm_response: fn action, _context, turn ->
+                   send(test_pid, {:llm_response, action, turn})
+                 end
+               )
+
+      assert result.message == "Streamed completion."
+
+      assert_receive {:llm_chunk,
+                      %{
+                        type: :content,
+                        content: %PuckCoder.Actions.Done{message: "Streamed completion."}
+                      }}
+
+      assert_receive {:llm_response, %PuckCoder.Actions.Done{message: "Streamed completion."}, 1}
+    end
   end
 end
