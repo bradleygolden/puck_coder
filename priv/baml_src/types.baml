@@ -1,33 +1,38 @@
 class ReadFile {
-  type "read_file" @description("Action discriminator. Use exactly 'read_file'. Required fields: type, path, description.") @stream.not_null
-  path string @description("Absolute file path")
-  description string @description("Brief status for user")
+  action "read_file" @description("Action discriminator. Use exactly 'read_file'. Required fields: action, path, description.") @stream.done @stream.not_null
+  path string @description("Absolute file path") @stream.done @stream.not_null
+  description string @description("Brief status for user") @stream.done @stream.not_null
+  @@stream.done
 }
 
 class WriteFile {
-  type "write_file" @description("Action discriminator. Use exactly 'write_file'. Required fields: type, path, content, description.") @stream.not_null
-  path string @description("Absolute path to write")
-  content string @description("Complete file content")
-  description string @description("Brief status for user")
+  action "write_file" @description("Action discriminator. Use exactly 'write_file'. Required fields: action, path, content, description.") @stream.done @stream.not_null
+  path string @description("Absolute path to write") @stream.done @stream.not_null
+  content string @description("Complete file content") @stream.done @stream.not_null
+  description string @description("Brief status for user") @stream.done @stream.not_null
+  @@stream.done
 }
 
 class EditFile {
-  type "edit_file" @description("Action discriminator. Use exactly 'edit_file'. Required fields: type, path, old_string, new_string, description.") @stream.not_null
-  path string @description("Absolute file path")
-  old_string string @description("Exact string to find (first match)")
-  new_string string @description("Replacement string")
-  description string @description("Brief status for user")
+  action "edit_file" @description("Action discriminator. Use exactly 'edit_file'. Required fields: action, path, old_string, new_string, description.") @stream.done @stream.not_null
+  path string @description("Absolute file path") @stream.done @stream.not_null
+  old_string string @description("Exact string to find (first match)") @stream.done @stream.not_null
+  new_string string @description("Replacement string") @stream.done @stream.not_null
+  description string @description("Brief status for user") @stream.done @stream.not_null
+  @@stream.done
 }
 
 class Shell {
-  type "shell" @description("Action discriminator. Use exactly 'shell'. Required fields: type, command, description.") @stream.not_null
-  command string @description("Shell command to run")
-  description string @description("Brief status for user")
+  action "shell" @description("Action discriminator. Use exactly 'shell'. Required fields: action, command, description.") @stream.done @stream.not_null
+  command string @description("Shell command to run") @stream.done @stream.not_null
+  description string @description("Brief status for user") @stream.done @stream.not_null
+  @@stream.done
 }
 
 class Done {
-  type "done" @description("Action discriminator. Use exactly 'done'. Required fields: type, message.") @stream.not_null
-  message string @description("Summary of what was done")
+  action "done" @description("Action discriminator. Use exactly 'done'. Required fields: action, message.") @stream.done @stream.not_null
+  message string @description("Summary of what was done") @stream.done @stream.not_null
+  @@stream.done
 }
 
 class Message {

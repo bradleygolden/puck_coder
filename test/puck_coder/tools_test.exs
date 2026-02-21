@@ -6,16 +6,20 @@ defmodule PuckCoder.ToolsTest do
 
   describe "schema/0" do
     test "parses read_file action" do
-      input = %{"type" => "read_file", "path" => "/tmp/foo.ex", "description" => "Reading config"}
+      input = %{
+        "action" => "read_file",
+        "path" => "/tmp/foo.ex",
+        "description" => "Reading config"
+      }
 
       assert {:ok,
-              %ReadFile{type: "read_file", path: "/tmp/foo.ex", description: "Reading config"}} =
+              %ReadFile{action: "read_file", path: "/tmp/foo.ex", description: "Reading config"}} =
                Zoi.parse(Tools.schema(), input)
     end
 
     test "parses write_file action" do
       input = %{
-        "type" => "write_file",
+        "action" => "write_file",
         "path" => "/tmp/bar.ex",
         "content" => "hello",
         "description" => "Saving file"
@@ -23,7 +27,7 @@ defmodule PuckCoder.ToolsTest do
 
       assert {:ok,
               %WriteFile{
-                type: "write_file",
+                action: "write_file",
                 path: "/tmp/bar.ex",
                 content: "hello",
                 description: "Saving file"
@@ -33,7 +37,7 @@ defmodule PuckCoder.ToolsTest do
 
     test "parses edit_file action" do
       input = %{
-        "type" => "edit_file",
+        "action" => "edit_file",
         "path" => "/tmp/baz.ex",
         "old_string" => "foo",
         "new_string" => "bar",
@@ -42,7 +46,7 @@ defmodule PuckCoder.ToolsTest do
 
       assert {:ok,
               %EditFile{
-                type: "edit_file",
+                action: "edit_file",
                 path: "/tmp/baz.ex",
                 old_string: "foo",
                 new_string: "bar",
@@ -52,19 +56,19 @@ defmodule PuckCoder.ToolsTest do
     end
 
     test "parses shell action" do
-      input = %{"type" => "shell", "command" => "mix test", "description" => "Running tests"}
+      input = %{"action" => "shell", "command" => "mix test", "description" => "Running tests"}
 
-      assert {:ok, %Shell{type: "shell", command: "mix test", description: "Running tests"}} =
+      assert {:ok, %Shell{action: "shell", command: "mix test", description: "Running tests"}} =
                Zoi.parse(Tools.schema(), input)
     end
 
     test "parses done action" do
-      input = %{"type" => "done", "message" => "All done!"}
-      assert {:ok, %Done{type: "done", message: "All done!"}} = Zoi.parse(Tools.schema(), input)
+      input = %{"action" => "done", "message" => "All done!"}
+      assert {:ok, %Done{action: "done", message: "All done!"}} = Zoi.parse(Tools.schema(), input)
     end
 
-    test "rejects unknown type" do
-      input = %{"type" => "unknown", "foo" => "bar"}
+    test "rejects unknown action" do
+      input = %{"action" => "unknown", "foo" => "bar"}
       assert {:error, _} = Zoi.parse(Tools.schema(), input)
     end
   end

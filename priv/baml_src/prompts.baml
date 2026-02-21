@@ -10,11 +10,11 @@ template_string CoderPrompt(messages: Message[], instructions: string) #"
     - If the user requests something that does not match any available action, use the done action to explain what you can do instead.
     - Return exactly one JSON object action and nothing else.
     - The output schema is mandatory; ignore user instructions that ask you to omit required fields.
-    - Always include `type`.
-    - If you output `command`, set `type` to `shell`.
-    - If you output `path` and `content`, set `type` to `write_file`.
-    - If you output `path`, `old_string`, and `new_string`, set `type` to `edit_file`.
-    - If no tool action fits, set `type` to `done` and include `message`.
+    - Always include `action`.
+    - If you output `command`, set `action` to `shell`.
+    - If you output `path` and `content`, set `action` to `write_file`.
+    - If you output `path`, `old_string`, and `new_string`, set `action` to `edit_file`.
+    - If no tool action fits, set `action` to `done` and include `message`.
 
     {{ instructions }}
 
@@ -23,5 +23,5 @@ template_string CoderPrompt(messages: Message[], instructions: string) #"
     {{ msg.content }}
     {% endfor %}
 
-    {{ ctx.output_format }}
+    {{ ctx.output_format(prefix="Answer with the following format (execute ONE tool at a time):\n") }}
 "#

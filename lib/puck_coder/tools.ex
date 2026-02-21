@@ -2,13 +2,13 @@ defmodule PuckCoder.Tools do
   @moduledoc """
   Zoi schema for parsing LLM tool outputs into action structs.
 
-  Builds a discriminated union over the `type` field, converting raw maps
+  Builds a discriminated union over the `action` field, converting raw maps
   from BAML into typed Elixir structs.
 
   ## Example
 
       {:ok, %PuckCoder.Actions.ReadFile{path: "/tmp/foo.ex"}} =
-        Zoi.parse(PuckCoder.Tools.schema(), %{"type" => "read_file", "path" => "/tmp/foo.ex"})
+        Zoi.parse(PuckCoder.Tools.schema(), %{"action" => "read_file", "path" => "/tmp/foo.ex"})
 
   """
 
@@ -31,7 +31,7 @@ defmodule PuckCoder.Tools do
     Zoi.struct(
       ReadFile,
       %{
-        type: Zoi.enum(["read_file"]),
+        action: Zoi.enum(["read_file"]),
         path: Zoi.string(),
         description: Zoi.string(description: "Brief user-friendly status shown to the user")
       },
@@ -43,7 +43,7 @@ defmodule PuckCoder.Tools do
     Zoi.struct(
       WriteFile,
       %{
-        type: Zoi.enum(["write_file"]),
+        action: Zoi.enum(["write_file"]),
         path: Zoi.string(),
         content: Zoi.string(),
         description: Zoi.string(description: "Brief user-friendly status shown to the user")
@@ -56,7 +56,7 @@ defmodule PuckCoder.Tools do
     Zoi.struct(
       EditFile,
       %{
-        type: Zoi.enum(["edit_file"]),
+        action: Zoi.enum(["edit_file"]),
         path: Zoi.string(),
         old_string: Zoi.string(),
         new_string: Zoi.string(),
@@ -70,7 +70,7 @@ defmodule PuckCoder.Tools do
     Zoi.struct(
       Shell,
       %{
-        type: Zoi.enum(["shell"]),
+        action: Zoi.enum(["shell"]),
         command: Zoi.string(),
         description: Zoi.string(description: "Brief user-friendly status shown to the user")
       },
@@ -82,7 +82,7 @@ defmodule PuckCoder.Tools do
     Zoi.struct(
       Done,
       %{
-        type: Zoi.enum(["done"]),
+        action: Zoi.enum(["done"]),
         message: Zoi.string()
       },
       coerce: true
