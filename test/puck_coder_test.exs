@@ -37,61 +37,16 @@ defmodule PuckCoderTest do
     end
   end
 
-  describe "run/2 with plugins" do
-    test "runs a bare module plugin end-to-end" do
-      tmp_dir = System.tmp_dir!()
-
+  describe "run/2 without plugins" do
+    test "rejects plugins option" do
       client =
         Puck.Test.mock_client([
-          %{"type" => "list_dir", "path" => tmp_dir},
-          %{"type" => "done", "message" => "Listed it."}
+          %{"type" => "done", "message" => "Task complete."}
         ])
 
-      assert {:ok, result} =
-               PuckCoder.run("List the temp directory",
-                 client: client,
-                 plugins: [PuckCoder.TestPlugin]
-               )
-
-      assert result.message == "Listed it."
-      assert result.turns == 2
-    end
-
-    test "runs a {Plugin, opts} tuple plugin end-to-end" do
-      tmp_dir = System.tmp_dir!()
-
-      client =
-        Puck.Test.mock_client([
-          %{"type" => "list_dir", "path" => tmp_dir},
-          %{"type" => "done", "message" => "Listed it."}
-        ])
-
-      assert {:ok, result} =
-               PuckCoder.run("List the temp directory",
-                 client: client,
-                 plugins: [{PuckCoder.TestPlugin, [some: "opt"]}]
-               )
-
-      assert result.message == "Listed it."
-      assert result.turns == 2
-    end
-  end
-
-  describe "run/2 with plugin halt" do
-    test "plugin halt propagates through run/2" do
-      client =
-        Puck.Test.mock_client([
-          %{"type" => "halt_me", "reason" => "nap_time", "seconds" => 60}
-        ])
-
-      assert {:halt, result} =
-               PuckCoder.run("Halt integration test",
-                 client: client,
-                 plugins: [PuckCoder.HaltPlugin]
-               )
-
-      assert result.message == "Halt recorded."
-      assert result.halt_metadata == %{reason: "nap_time", seconds: 60}
+      assert_raise ArgumentError, ~r/plugins are no longer supported/, fn ->
+        PuckCoder.run("Do something", client: client, plugins: [:legacy_plugin])
+      end
     end
   end
 
@@ -143,28 +98,6 @@ defmodule PuckCoderTest do
 
       assert {:ok, result} = PuckCoder.run("Do something", client: client, skills: [])
       assert result.message == "Done."
-    end
-
-    test "works with skills and plugins together" do
-      tmp_dir = System.tmp_dir!()
-
-      client =
-        Puck.Test.mock_client([
-          %{"type" => "list_dir", "path" => tmp_dir},
-          %{"type" => "done", "message" => "Done."}
-        ])
-
-      assert {:ok, result} =
-               PuckCoder.run("Do something",
-                 client: client,
-                 plugins: [PuckCoder.TestPlugin],
-                 skills: [
-                   %{name: "pdf", description: "Extract PDFs.", path: "/skills/pdf/SKILL.md"}
-                 ]
-               )
-
-      assert result.message == "Done."
-      assert result.turns == 2
     end
   end
 

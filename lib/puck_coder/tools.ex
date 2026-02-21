@@ -16,22 +16,15 @@ defmodule PuckCoder.Tools do
 
   @doc """
   Returns the Zoi union schema for all coding agent actions.
-
-  Accepts an optional list of plugin modules whose schemas are appended
-  to the built-in union. With no arguments, returns built-in actions only.
   """
-  def schema(plugins \\ []) do
-    plugin_schemas = Enum.map(plugins, fn {mod, _opts} -> mod.schema() end)
-
-    Zoi.union(
-      [
-        read_file_schema(),
-        write_file_schema(),
-        edit_file_schema(),
-        shell_schema(),
-        done_schema()
-      ] ++ plugin_schemas
-    )
+  def schema do
+    Zoi.union([
+      read_file_schema(),
+      write_file_schema(),
+      edit_file_schema(),
+      shell_schema(),
+      done_schema()
+    ])
   end
 
   defp read_file_schema do

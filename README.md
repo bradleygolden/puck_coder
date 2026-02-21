@@ -120,74 +120,6 @@ The agent has 4 tools:
 | `edit_file` | Replace the first occurrence of a string in a file |
 | `shell` | Execute a shell command |
 
-## Plugins
-
-Add custom action types without modifying core code. Plugins are plain modules — no GenServers, no ETS, no global state.
-
-```elixir
-defmodule MyApp.Plugins.HttpGet do
-  @behaviour PuckCoder.Plugin
-
-  defmodule Action do
-    defstruct type: "http_get", url: nil
-  end
-
-  @impl true
-  def name, do: "http_get"
-
-  @impl true
-  def description, do: "Fetch a URL and return its body. Params: url (string)."
-
-  @impl true
-  def schema do
-    Zoi.struct(Action, %{
-      type: Zoi.enum(["http_get"]),
-      url: Zoi.string()
-    }, coerce: true)
-  end
-
-  @impl true
-  def execute(%Action{url: url}, _opts, _plugin_opts) do
-    case Req.get(url) do
-      {:ok, %{status: 200, body: body}} -> {:ok, body}
-      {:ok, %{status: status}} -> {:error, "HTTP #{status}"}
-      {:error, reason} -> {:error, reason}
-    end
-  end
-end
-```
-
-Then pass it to `run/2`:
-
-```elixir
-{:ok, result} = PuckCoder.run("Check if example.com is up",
-  plugins: [MyApp.Plugins.HttpGet]
-)
-```
-
-Plugins also accept a `{module, opts}` tuple for per-invocation configuration:
-
-```elixir
-{:ok, result} = PuckCoder.run("Check if example.com is up",
-  plugins: [{MyApp.Plugins.HttpGet, [timeout: 5_000]}]
-)
-```
-
-The opts are passed as the third argument to `execute/3`.
-
-The LLM learns about plugins via instruction injection — each plugin's `name/0` and `description/0` are appended to the prompt. This keeps overhead to ~15 tokens per plugin.
-
-### Plugin Behaviour Callbacks
-
-| Callback | Required | Description |
-|----------|----------|-------------|
-| `name/0` | Yes | Action name (matches `type` field in JSON) |
-| `description/0` | Yes | One-line description injected into LLM prompt |
-| `schema/0` | Yes | Zoi schema for parsing LLM output |
-| `execute/3` | Yes | Runs the action; receives parsed struct, `executor_opts`, and `plugin_opts` |
-| `action_summary/1` | No | Custom summary for result messages fed back to LLM |
-| `type_builder_fields/0` | No | Reserved for future BAML `@@dynamic` integration |
-
 ## Skills
 
 PuckCoder supports the [Agent Skills](https://agentskills.io/specification) standard — an open format for giving agents specialized capabilities via SKILL.md files. Skills are not tools; they're contextual instruction packs the agent loads on demand via `read_file`. Only the skill name and description are injected into the prompt (~100 tokens each). The full SKILL.md body is read only when the agent decides a skill is relevant.
@@ -215,17 +147,6 @@ skills = PuckCoder.Skill.discover(["/path/to/skills"])
 PuckCoder.run("Analyze the dataset", skills: skills)
 ```
 
-### Combine with plugins
-
-Skills and plugins work together:
-
-```elixir
-{:ok, result} = PuckCoder.run("Process the data",
-  plugins: [MyApp.Plugins.HttpGet],
-  skills: PuckCoder.Skill.discover(["./skills"])
-)
-```
-
 ## Custom Executors
 
 By default, tools run directly on your local filesystem. Implement `PuckCoder.Executor` to run them elsewhere:
@@ -244,7 +165,6 @@ By default, tools run directly on your local filesystem. Implement `PuckCoder.Ex
 | `:client` | BAML | Custom `Puck.Client` (bypasses BAML) |
 | `:client_registry` | `nil` | BAML client registry for runtime LLM config |
 | `:instructions` | `""` | Extra instructions for the agent |
-| `:plugins` | `[]` | List of `PuckCoder.Plugin` modules for custom actions |
 | `:skills` | `[]` | List of `PuckCoder.Skill` structs or maps with `:name`, `:description`, `:path` |
 | `:executor` | `PuckCoder.Executors.Local` | Tool execution backend |
 | `:executor_opts` | `[]` | Options passed to executor (e.g., `cwd`, `timeout`) |

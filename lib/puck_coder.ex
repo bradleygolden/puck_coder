@@ -38,13 +38,6 @@ defmodule PuckCoder do
       )
       {:ok, result} = PuckCoder.run("Fix the bug", client: client)
 
-  ## With Plugins
-
-      {:ok, result} = PuckCoder.run("Check if example.com is up",
-        plugins: [MyApp.Plugins.HttpGet],
-        executor_opts: [cwd: "/my/project"]
-      )
-
   ## With Skills
 
       {:ok, result} = PuckCoder.run("Extract text from the PDF",
@@ -70,7 +63,6 @@ defmodule PuckCoder do
   - `:client` - Custom `Puck.Client` (bypasses BAML, use your own system prompt)
   - `:client_registry` - BAML client registry for runtime LLM provider config
   - `:instructions` - Extra instructions injected into the BAML prompt
-  - `:plugins` - List of `PuckCoder.Plugin` modules for custom actions
   - `:skills` - List of `PuckCoder.Skill` structs or maps with `:name`, `:description`, `:path`
   - `:executor` - Module implementing `PuckCoder.Executor` (default: `PuckCoder.Executors.Local`)
   - `:executor_opts` - Keyword list passed to executor callbacks (e.g., `[cwd: "/path"]`)
@@ -83,7 +75,7 @@ defmodule PuckCoder do
   ## Returns
 
   - `{:ok, %{message: String.t(), turns: integer(), context: Puck.Context.t()}}` on success
-  - `{:halt, %{message: String.t(), turns: integer(), context: Puck.Context.t(), halt_metadata: map()}}` when a plugin requests halt
+  - `{:halt, %{message: String.t(), turns: integer(), context: Puck.Context.t(), halt_metadata: map()}}` when execution requests halt
   - `{:error, reason}` on failure
   - `{:error, :max_turns_exceeded, metadata}` if the agent didn't finish in time
 
@@ -96,19 +88,14 @@ defmodule PuckCoder do
   """
   def run(task, opts \\ []) do
     {client_opts, loop_opts} = split_opts(opts)
-
-    plugins =
-      loop_opts
-      |> Keyword.get(:plugins, [])
-      |> Enum.map(&PuckCoder.Plugin.normalize/1)
+    reject_plugins!(opts)
 
     skills = normalize_skills(client_opts)
 
-    client = build_client(client_opts, skills, plugins)
+    client = build_client(client_opts, skills)
 
     loop_opts =
       loop_opts
-      |> Keyword.put(:plugins, plugins)
       |> Keyword.put(:client, client)
       |> Keyword.put_new(:max_turns, @default_max_turns)
 
@@ -156,17 +143,17 @@ defmodule PuckCoder do
     {client_keys, loop_keys}
   end
 
-  defp build_client(opts, skills, plugins) do
+  defp build_client(opts, skills) do
     case Keyword.get(opts, :client) do
       %Puck.Client{} = client ->
         client
 
       nil ->
-        build_baml_client(opts, skills, plugins)
+        build_baml_client(opts, skills)
     end
   end
 
-  defp build_baml_client(opts, skills, plugins) do
+  defp build_baml_client(opts, skills) do
     base_instructions = Keyword.get(opts, :instructions, "")
     skill_text = build_skill_instructions(skills)
 
@@ -177,12 +164,9 @@ defmodule PuckCoder do
 
     client_registry = Keyword.get(opts, :client_registry)
 
-    function_name =
-      if plugins == [], do: "CoderRun", else: "CoderRunWithPlugins"
-
     backend_config =
       %{
-        function: function_name,
+        function: "CoderRun",
         args_format: :auto,
         args: fn messages ->
           %{
@@ -230,6 +214,13 @@ defmodule PuckCoder do
 
   defp extract_text(other) when is_binary(other), do: other
   defp extract_text(_), do: ""
+
+  defp reject_plugins!(opts) do
+    if Keyword.has_key?(opts, :plugins) do
+      raise ArgumentError,
+            "plugins are no longer supported by PuckCoder; use built-in actions (read_file, write_file, edit_file, shell, done)"
+    end
+  end
 
   defp maybe_put(map, _key, nil), do: map
   defp maybe_put(map, key, value), do: Map.put(map, key, value)

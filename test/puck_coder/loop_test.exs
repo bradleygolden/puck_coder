@@ -106,62 +106,6 @@ defmodule PuckCoder.LoopTest do
       assert result.message == "Handled the error."
     end
 
-    test "dispatches plugin action to plugin.execute/3" do
-      tmp_dir = System.tmp_dir!()
-
-      client =
-        Puck.Test.mock_client([
-          %{"type" => "list_dir", "path" => tmp_dir},
-          %{"type" => "done", "message" => "Listed directory."}
-        ])
-
-      assert {:ok, result} =
-               PuckCoder.Loop.run("List the temp dir",
-                 client: client,
-                 plugins: [{PuckCoder.TestPlugin, []}]
-               )
-
-      assert result.message == "Listed directory."
-      assert result.turns == 2
-    end
-
-    test "plugin halt stops the loop" do
-      client =
-        Puck.Test.mock_client([
-          %{"type" => "halt_me", "reason" => "sleepy", "seconds" => 30},
-          %{"type" => "done", "message" => "Should never reach here."}
-        ])
-
-      assert {:halt, result} =
-               PuckCoder.Loop.run("Halt test",
-                 client: client,
-                 plugins: [{PuckCoder.HaltPlugin, []}]
-               )
-
-      assert result.message == "Halt recorded."
-      assert result.halt_metadata == %{reason: "sleepy", seconds: 30}
-      assert result.turns == 1
-    end
-
-    test "passes plugin_opts to plugin.execute/3" do
-      client =
-        Puck.Test.mock_client([
-          %{"type" => "capture", "value" => "hello"},
-          %{"type" => "done", "message" => "Done."}
-        ])
-
-      assert {:ok, _result} =
-               PuckCoder.Loop.run("Capture opts",
-                 client: client,
-                 plugins: [{PuckCoder.OptsCapturePlugin, [some: "opt"]}],
-                 executor_opts: [cwd: "/tmp"]
-               )
-
-      assert_received {:captured, "hello", executor_opts, plugin_opts}
-      assert executor_opts == [cwd: "/tmp"]
-      assert plugin_opts == [some: "opt"]
-    end
-
     test "invokes streaming callbacks for chunks and parsed responses" do
       test_pid = self()
 
