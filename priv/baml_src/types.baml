@@ -29,10 +29,9 @@ class Shell {
   @@stream.done
 }
 
-class Done {
-  action "done" @description("Action discriminator. Use exactly 'done'. Required fields: action, message.") @stream.done @stream.not_null
-  message string @description("Summary of what was done") @stream.done @stream.not_null
-  @@stream.done
+class ReplyToUser {
+  action "reply_to_user" @description("Action discriminator. Use exactly 'reply_to_user'. Required fields: action, message.") @stream.done @stream.not_null
+  message string @description("Message to stream directly to the user") @stream.not_null
 }
 
 class Message {
@@ -40,4 +39,6 @@ class Message {
   content string
 }
 
-type CoreActions = ReadFile | WriteFile | EditFile | Shell | Done
+type AgentTools = ReadFile | WriteFile | EditFile | Shell
+type AgentLoopOutput = AgentTools | ReplyToUser
+type CoreActions = AgentLoopOutput

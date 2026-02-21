@@ -1,7 +1,7 @@
 defmodule PuckCoder.ToolsTest do
   use ExUnit.Case, async: true
 
-  alias PuckCoder.Actions.{Done, EditFile, ReadFile, Shell, WriteFile}
+  alias PuckCoder.Actions.{EditFile, ReadFile, ReplyToUser, Shell, WriteFile}
   alias PuckCoder.Tools
 
   describe "schema/0" do
@@ -62,9 +62,14 @@ defmodule PuckCoder.ToolsTest do
                Zoi.parse(Tools.schema(), input)
     end
 
-    test "parses done action" do
-      input = %{"action" => "done", "message" => "All done!"}
-      assert {:ok, %Done{action: "done", message: "All done!"}} = Zoi.parse(Tools.schema(), input)
+    test "parses reply_to_user action" do
+      input = %{"action" => "reply_to_user", "message" => "Here is the summary."}
+
+      assert {:ok,
+              %ReplyToUser{
+                action: "reply_to_user",
+                message: "Here is the summary."
+              }} = Zoi.parse(Tools.schema(), input)
     end
 
     test "rejects unknown action" do

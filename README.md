@@ -109,9 +109,9 @@ client = Puck.Client.new(
 {:ok, result} = PuckCoder.run("Fix the bug", client: client)
 ```
 
-## Tools
+## Actions
 
-The agent has 4 tools:
+The agent supports tool actions plus direct user replies:
 
 | Tool | Purpose |
 |------|---------|
@@ -119,6 +119,7 @@ The agent has 4 tools:
 | `write_file` | Create or overwrite a file |
 | `edit_file` | Replace the first occurrence of a string in a file |
 | `shell` | Execute a shell command |
+| `reply_to_user` | Reply directly to the user (streamable terminal action) |
 
 ## Skills
 

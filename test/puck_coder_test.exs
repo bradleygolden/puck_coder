@@ -9,7 +9,7 @@ defmodule PuckCoderTest do
     test "runs a simple task to completion" do
       client =
         Puck.Test.mock_client([
-          %{"action" => "done", "message" => "Task complete."}
+          %{"action" => "reply_to_user", "message" => "Task complete."}
         ])
 
       assert {:ok, result} = PuckCoder.run("Do something", client: client)
@@ -24,7 +24,7 @@ defmodule PuckCoderTest do
       client =
         Puck.Test.mock_client([
           %{"action" => "read_file", "path" => tmp, "description" => "Reading file"},
-          %{"action" => "done", "message" => "Read it."}
+          %{"action" => "reply_to_user", "message" => "Read it."}
         ])
 
       assert {:ok, result} =
@@ -41,7 +41,7 @@ defmodule PuckCoderTest do
     test "rejects plugins option" do
       client =
         Puck.Test.mock_client([
-          %{"action" => "done", "message" => "Task complete."}
+          %{"action" => "reply_to_user", "message" => "Task complete."}
         ])
 
       assert_raise ArgumentError, ~r/plugins are no longer supported/, fn ->
@@ -54,7 +54,7 @@ defmodule PuckCoderTest do
     test "agent completes with skills as maps" do
       client =
         Puck.Test.mock_client([
-          %{"action" => "done", "message" => "Done with skills."}
+          %{"action" => "reply_to_user", "message" => "Done with skills."}
         ])
 
       assert {:ok, result} =
@@ -71,7 +71,7 @@ defmodule PuckCoderTest do
     test "agent completes with skills as structs" do
       client =
         Puck.Test.mock_client([
-          %{"action" => "done", "message" => "Done with skills."}
+          %{"action" => "reply_to_user", "message" => "Done with skills."}
         ])
 
       skill =
@@ -93,7 +93,7 @@ defmodule PuckCoderTest do
     test "works with empty skills list" do
       client =
         Puck.Test.mock_client([
-          %{"action" => "done", "message" => "Done."}
+          %{"action" => "reply_to_user", "message" => "Done."}
         ])
 
       assert {:ok, result} = PuckCoder.run("Do something", client: client, skills: [])

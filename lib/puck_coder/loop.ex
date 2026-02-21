@@ -7,11 +7,11 @@ defmodule PuckCoder.Loop do
   2. Pattern matches the returned action struct
   3. Executes the action via the configured executor
   4. Feeds the result back as a user message
-  5. Loops until `Done` or `max_turns` is reached
+  5. Loops until `ReplyToUser` or `max_turns` is reached
   """
 
   alias Puck.Context
-  alias PuckCoder.Actions.{Done, EditFile, ReadFile, Shell, WriteFile}
+  alias PuckCoder.Actions.{EditFile, ReadFile, ReplyToUser, Shell, WriteFile}
   alias PuckCoder.Tools
 
   @doc """
@@ -71,7 +71,7 @@ defmodule PuckCoder.Loop do
         maybe_invoke_on_llm_response(callbacks, action, new_context, turn + 1)
 
         case action do
-          %Done{message: message} ->
+          %ReplyToUser{message: message} ->
             {:ok, %{message: message, turns: turn + 1, context: new_context}}
 
           action ->
@@ -110,7 +110,7 @@ defmodule PuckCoder.Loop do
   end
 
   defp call_llm(client, input, context, callbacks) do
-    case Puck.stream(client, input, context, []) do
+    case Puck.stream(client, input, context, output_schema: Tools.schema()) do
       {:ok, stream, stream_context} ->
         {last_chunk, final_content} =
           Enum.reduce(stream, {nil, nil}, fn chunk, {_last_chunk, acc_content} ->
@@ -162,7 +162,7 @@ defmodule PuckCoder.Loop do
     do: %{type: :content, content: content, metadata: %{partial: false}}
 
   defp parse_final_action(%mod{} = action)
-       when mod in [ReadFile, WriteFile, EditFile, Shell, Done],
+       when mod in [ReadFile, WriteFile, EditFile, Shell, ReplyToUser],
        do: {:ok, action}
 
   defp parse_final_action(content), do: Zoi.parse(Tools.schema(), content)

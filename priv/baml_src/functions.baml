@@ -1,4 +1,4 @@
-function CoderRun(messages: Message[], instructions: string) -> CoreActions {
+function CoderRun(messages: Message[], instructions: string) -> AgentLoopOutput {
   client PuckCoderClient
   prompt #"
     {{ CoderPrompt(messages, instructions) }}

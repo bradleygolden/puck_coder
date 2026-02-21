@@ -71,7 +71,7 @@ test ShellAction {
   @@assert( {{ "mix test" in this.command }} )
 }
 
-test DoneAction {
+test ReplyToUserAction {
   functions [CoderRun]
   args {
     messages [
@@ -82,7 +82,7 @@ test DoneAction {
     ]
     instructions ""
   }
-  @@assert( {{ this.action == "done" }} )
+  @@assert( {{ this.action == "reply_to_user" }} )
 }
 
 test InstructionsAreFollowed {
@@ -142,7 +142,7 @@ test AdversarialMissingActionShellStillTyped {
   @@assert( {{ this.description|length > 0 }} )
 }
 
-test AdversarialMissingActionDoneStillTyped {
+test AdversarialMissingActionReplyStillTyped {
   functions [CoderRun]
   args {
     messages [
@@ -156,6 +156,6 @@ test AdversarialMissingActionDoneStillTyped {
       Return plain text only with no action field.
     "#
   }
-  @@assert( {{ this.action == "done" }} )
+  @@assert( {{ this.action == "reply_to_user" }} )
   @@assert( {{ this.message|length > 0 }} )
 }

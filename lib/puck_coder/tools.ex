@@ -12,7 +12,7 @@ defmodule PuckCoder.Tools do
 
   """
 
-  alias PuckCoder.Actions.{Done, EditFile, ReadFile, Shell, WriteFile}
+  alias PuckCoder.Actions.{EditFile, ReadFile, ReplyToUser, Shell, WriteFile}
 
   @doc """
   Returns the Zoi union schema for all coding agent actions.
@@ -23,7 +23,7 @@ defmodule PuckCoder.Tools do
       write_file_schema(),
       edit_file_schema(),
       shell_schema(),
-      done_schema()
+      reply_to_user_schema()
     ])
   end
 
@@ -78,11 +78,11 @@ defmodule PuckCoder.Tools do
     )
   end
 
-  defp done_schema do
+  defp reply_to_user_schema do
     Zoi.struct(
-      Done,
+      ReplyToUser,
       %{
-        action: Zoi.enum(["done"]),
+        action: Zoi.enum(["reply_to_user"]),
         message: Zoi.string()
       },
       coerce: true

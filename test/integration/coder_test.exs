@@ -13,7 +13,7 @@ defmodule PuckCoder.Integration.CoderTest do
 
       assert {:ok, result} =
                PuckCoder.run(
-                 "Read the file at #{file_path} and tell me what it says. Include the exact contents in your done message.",
+                 "Read the file at #{file_path} and tell me what it says. Include the exact contents in your reply_to_user message.",
                  client_registry: client_registry,
                  executor_opts: [cwd: tmp_dir],
                  max_turns: 10
@@ -72,7 +72,7 @@ defmodule PuckCoder.Integration.CoderTest do
     } do
       assert {:ok, result} =
                PuckCoder.run(
-                 "Run the shell command: echo PUCK_TEST_OUTPUT_12345 — then include the output in your done message.",
+                 "Run the shell command: echo PUCK_TEST_OUTPUT_12345 — then include the output in your reply_to_user message.",
                  client_registry: client_registry,
                  executor_opts: [cwd: tmp_dir],
                  max_turns: 10

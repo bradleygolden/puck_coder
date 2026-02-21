@@ -6,20 +6,20 @@ defmodule PuckCoder.LoopTest do
   setup :verify_on_exit!
 
   describe "run/2" do
-    test "completes immediately when LLM returns Done" do
+    test "completes immediately when LLM returns reply_to_user" do
       client =
         Puck.Test.mock_client([
-          %{"action" => "done", "message" => "Nothing to do."}
+          %{"action" => "reply_to_user", "message" => "Here is your answer."}
         ])
 
       assert {:ok, result} =
-               PuckCoder.Loop.run("Do nothing", client: client)
+               PuckCoder.Loop.run("Answer directly", client: client)
 
-      assert result.message == "Nothing to do."
+      assert result.message == "Here is your answer."
       assert result.turns == 1
     end
 
-    test "executes read_file then done" do
+    test "executes read_file then reply_to_user" do
       tmp = Path.join(System.tmp_dir!(), "loop_test_#{System.unique_integer([:positive])}.txt")
       File.write!(tmp, "file content here")
       on_exit(fn -> File.rm(tmp) end)
@@ -27,7 +27,7 @@ defmodule PuckCoder.LoopTest do
       client =
         Puck.Test.mock_client([
           %{"action" => "read_file", "path" => tmp, "description" => "Reading file"},
-          %{"action" => "done", "message" => "Read the file."}
+          %{"action" => "reply_to_user", "message" => "Read the file."}
         ])
 
       assert {:ok, result} =
@@ -37,7 +37,7 @@ defmodule PuckCoder.LoopTest do
       assert result.turns == 2
     end
 
-    test "executes write_file then done" do
+    test "executes write_file then reply_to_user" do
       tmp_dir = Path.join(System.tmp_dir!(), "loop_write_#{System.unique_integer([:positive])}")
       tmp = Path.join(tmp_dir, "new.txt")
       on_exit(fn -> File.rm_rf(tmp_dir) end)
@@ -50,7 +50,7 @@ defmodule PuckCoder.LoopTest do
             "content" => "new content",
             "description" => "Writing file"
           },
-          %{"action" => "done", "message" => "Wrote the file."}
+          %{"action" => "reply_to_user", "message" => "Wrote the file."}
         ])
 
       assert {:ok, result} =
@@ -60,11 +60,11 @@ defmodule PuckCoder.LoopTest do
       assert File.read!(tmp) == "new content"
     end
 
-    test "executes shell then done" do
+    test "executes shell then reply_to_user" do
       client =
         Puck.Test.mock_client([
           %{"action" => "shell", "command" => "echo hello", "description" => "Running echo"},
-          %{"action" => "done", "message" => "Ran the command."}
+          %{"action" => "reply_to_user", "message" => "Ran the command."}
         ])
 
       assert {:ok, result} =
@@ -97,7 +97,7 @@ defmodule PuckCoder.LoopTest do
             "path" => "/nonexistent/does_not_exist.txt",
             "description" => "Reading missing file"
           },
-          %{"action" => "done", "message" => "Handled the error."}
+          %{"action" => "reply_to_user", "message" => "Handled the error."}
         ])
 
       assert {:ok, result} =
@@ -111,7 +111,7 @@ defmodule PuckCoder.LoopTest do
 
       client =
         Puck.Test.mock_client([
-          %{"action" => "done", "message" => "Streamed completion."}
+          %{"action" => "reply_to_user", "message" => "Streamed completion."}
         ])
 
       assert {:ok, result} =
@@ -128,10 +128,11 @@ defmodule PuckCoder.LoopTest do
       assert_receive {:llm_chunk,
                       %{
                         type: :content,
-                        content: %PuckCoder.Actions.Done{message: "Streamed completion."}
+                        content: %PuckCoder.Actions.ReplyToUser{message: "Streamed completion."}
                       }}
 
-      assert_receive {:llm_response, %PuckCoder.Actions.Done{message: "Streamed completion."}, 1}
+      assert_receive {:llm_response,
+                      %PuckCoder.Actions.ReplyToUser{message: "Streamed completion."}, 1}
     end
   end
 end

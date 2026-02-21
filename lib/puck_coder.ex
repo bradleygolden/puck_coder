@@ -125,7 +125,7 @@ defmodule PuckCoder do
     - Use edit_file for surgical changes. Use write_file only for new files or complete rewrites.
     - Run tests after making changes when applicable.
     - If a tool call fails, read the error and try a different approach.
-    - If the user requests something that does not match any available action, use the done action to explain what you can do instead.
+    - If the user requests something that does not need a tool, use the reply_to_user action with a clear message.
     """
 
     case build_skill_instructions(skills) do
@@ -218,7 +218,7 @@ defmodule PuckCoder do
   defp reject_plugins!(opts) do
     if Keyword.has_key?(opts, :plugins) do
       raise ArgumentError,
-            "plugins are no longer supported by PuckCoder; use built-in actions (read_file, write_file, edit_file, shell, done)"
+            "plugins are no longer supported by PuckCoder; use built-in actions (read_file, write_file, edit_file, shell, reply_to_user)"
     end
   end
 
