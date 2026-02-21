@@ -3,7 +3,7 @@ defmodule PuckCoder.Loop do
   Recursive agent loop that calls the LLM and dispatches tool actions.
 
   Each iteration:
-  1. Calls `Puck.call/4` with the current context
+  1. Calls `Puck.stream/4` with the current context
   2. Pattern matches the returned action struct
   3. Executes the action via the configured executor
   4. Feeds the result back as a user message
@@ -110,9 +110,7 @@ defmodule PuckCoder.Loop do
   end
 
   defp call_llm(client, input, context, callbacks) do
-    opts = [output_schema: Tools.schema()]
-
-    case Puck.stream(client, input, context, opts) do
+    case Puck.stream(client, input, context, []) do
       {:ok, stream, stream_context} ->
         {last_chunk, final_content} =
           Enum.reduce(stream, {nil, nil}, fn chunk, {_last_chunk, acc_content} ->
@@ -125,9 +123,20 @@ defmodule PuckCoder.Loop do
             {:error, :empty_stream}
 
           content ->
-            metadata = chunk_metadata(last_chunk)
-            new_context = Context.add_message(stream_context, :assistant, content, metadata)
-            {:ok, content, new_context}
+            with {:ok, parsed_action} <- parse_final_action(content) do
+              metadata = chunk_metadata(last_chunk)
+
+              maybe_invoke_on_llm_chunk(
+                callbacks,
+                final_chunk(parsed_action, metadata),
+                stream_context
+              )
+
+              new_context =
+                Context.add_message(stream_context, :assistant, parsed_action, metadata)
+
+              {:ok, parsed_action, new_context}
+            end
         end
 
       {:error, reason} ->
@@ -140,6 +149,23 @@ defmodule PuckCoder.Loop do
 
   defp chunk_metadata(%{metadata: metadata}) when is_map(metadata), do: metadata
   defp chunk_metadata(_), do: %{}
+
+  defp final_chunk(content, metadata) when is_map(metadata) do
+    %{
+      type: :content,
+      content: content,
+      metadata: Map.put(metadata, :partial, false)
+    }
+  end
+
+  defp final_chunk(content, _metadata),
+    do: %{type: :content, content: content, metadata: %{partial: false}}
+
+  defp parse_final_action(%mod{} = action)
+       when mod in [ReadFile, WriteFile, EditFile, Shell, Done],
+       do: {:ok, action}
+
+  defp parse_final_action(content), do: Zoi.parse(Tools.schema(), content)
 
   defp maybe_invoke_on_llm_chunk(%{on_llm_chunk: nil}, _chunk, _context), do: :ok
 
